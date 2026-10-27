@@ -11,6 +11,7 @@ import { areaChart, donut } from '../chart.js';
 import { groupSites } from '../sites.js';
 import { openGitModal } from '../git.js';
 import { openDnsModal } from '../dns.js';
+import { openPhpModal } from '../php.js';
 import { renderCron } from '../cron.js';
 import * as favs from '../favorites.js';
 
@@ -19,8 +20,6 @@ const TABS = ['visao', 'sites', 'bancos', 'cron', 'ferramentas'];
 const rendered = new Set();
 let detail = null;
 let loadError = null;
-let phpDomain = null;
-let phpControls = null;
 
 const VHOST = { main: 'Principal', addon: 'Addon', subdomain: 'Subdomínio' };
 const FILTERS = [
@@ -351,7 +350,7 @@ function siteRow(site, children = [], isChild = false) {
         dbButton,
         isChild ? null : iconButton('git', 'Git e auto deploy', () => openGitModal({ orderId, domain: site.domain })),
         isChild ? null : iconButton('globe', 'Registros DNS', () => openDnsModal({ orderId, domain: site.domain })),
-        iconButton('code', 'Versão PHP', () => { phpDomain = site.domain; location.hash = 'ferramentas'; phpControls?.select(site.domain); }),
+        iconButton('code', 'Versão do PHP', () => openPhpModal({ orderId, domain: site.domain })),
         h('a', {
           class: 'btn btn-ghost btn-icon btn-sm', href: `https://hpanel.hostinger.com/websites/${encodeURIComponent(site.domain)}`,
           target: '_blank', rel: 'noopener noreferrer', 'aria-label': 'Abrir no hPanel', 'data-tip': 'Abrir no hPanel',
@@ -423,69 +422,9 @@ async function renderBancos(p) {
   }
 }
 
-/* ===== Ferramentas ===== */
+/* ===== Ferramentas: o que é da conta inteira (os ajustes por domínio ficam nos botões de cada site). */
 function renderFerramentas(p) {
-  p.append(phpCard(), h('div', { class: 'section' }), sshCard());
-}
-
-function phpCard() {
-  const domains = (detail.server.websites || []).map((s) => s.domain).sort();
-  const domainSel = h('select', { class: 'input', 'aria-label': 'Domínio' }, domains.map((d) => h('option', { value: d }, d)));
-  const versionSel = h('select', { class: 'input', 'aria-label': 'Versão do PHP', disabled: true });
-  const status = h('p', { class: 'muted small' });
-  const save = h('button', { type: 'button', class: 'btn btn-primary', disabled: true }, 'Aplicar');
-  if (phpDomain && domains.includes(phpDomain)) domainSel.value = phpDomain;
-
-  async function load() {
-    const domain = domainSel.value;
-    domainSel.disabled = true;
-    versionSel.disabled = true;
-    save.disabled = true;
-    clear(versionSel).append(h('option', {}, 'Carregando…'));
-    status.textContent = '';
-    try {
-      const v = await get('php-version', { orderId, domain });
-      if (domainSel.value !== domain) return;
-      clear(versionSel).append(...v.versions.map((x) => h('option', { value: x.version }, x.version === v.current ? `PHP ${x.version} (atual)` : x.label)));
-      if (v.current) versionSel.value = v.current;
-      status.textContent = v.current ? `Em uso: PHP ${v.currentFull || v.current}` : '';
-      versionSel.disabled = false;
-      save.disabled = false;
-    } catch (err) {
-      if (domainSel.value !== domain) return;
-      clear(versionSel).append(h('option', {}, 'Indisponível'));
-      status.textContent = err.message;
-    } finally {
-      if (domainSel.value === domain) domainSel.disabled = false;
-    }
-  }
-
-  save.addEventListener('click', async () => {
-    const domain = domainSel.value;
-    const version = versionSel.value;
-    save.disabled = true;
-    save.setAttribute('aria-busy', 'true');
-    status.textContent = 'Aplicando… a Hostinger pode levar até 30 s para confirmar.';
-    try {
-      await post('set-php-version', { orderId, domain, version });
-      clearCache();
-      toast(`PHP ${version} ativado em ${domain}.`, 'ok');
-      await load();
-    } catch (err) {
-      status.textContent = '';
-      toast(err.message, 'danger');
-      save.disabled = false;
-    } finally {
-      save.removeAttribute('aria-busy');
-    }
-  });
-  domainSel.addEventListener('change', load);
-  phpControls = { select: (d) => { if (domains.includes(d)) { domainSel.value = d; load(); } } };
-  load();
-
-  return section('Versão do PHP', h('div', { class: 'card stack' },
-    h('div', { class: 'grid' }, h('div', {}, h('label', { class: 'label' }, 'Domínio'), domainSel), h('div', {}, h('label', { class: 'label' }, 'Versão'), versionSel)),
-    h('div', { class: 'row' }, save, status)));
+  p.append(sshCard());
 }
 
 /** Cria/recria a chave SSH e invalida o cache da aba (os dados da conta podem ter mudado). */

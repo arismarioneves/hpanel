@@ -20,8 +20,8 @@ Painel para gerenciar todos os seus sites da Hostinger em um só lugar, sem nave
 - **🌐 Websites** - Domínios, subdomínios e addons de cada servidor
 - **📁 Gerenciador de Arquivos** - Link direto para cada domínio ou para a raiz da conta (botão no topo do servidor)
 - **🗄️ Bancos de dados** - Lista bancos com acesso ao phpMyAdmin
-- **🐘 Versão PHP** - Altere a versão PHP de qualquer domínio
-- **🔑 Chave SSH (Git)** - Veja, crie ou recrie a chave SSH de deploy de cada servidor
+- **🐘 Versão PHP** - Modal na linha do site: troca a versão do PHP daquele domínio
+- **🔑 Chave SSH (Git)** - Aba **Ferramentas** do servidor (é da conta inteira): veja, crie ou recrie a chave SSH de deploy
 - **🌿 Git e auto deploy** - Repositórios de cada domínio: criar, implantar na hora, ver a saída do último deploy, copiar o webhook e excluir
 - **🌐 Registros DNS** - Zona de cada domínio: ver os registros e os nameservers, criar, editar e excluir (A, AAAA, CNAME, MX, TXT, NS, SRV, CAA)
 - **📈 Uso** - Disco, inodes, RAM, CPU; respostas em cache na aba (exibe na hora e atualiza em segundo plano)
@@ -225,6 +225,7 @@ HPanel/
 │   │   ├── chart.js     # Gráficos SVG da visão geral (sem biblioteca)
 │   │   ├── cron.js      # Aba Cron jobs (+ cron-expr.js: presets, validação e descrição)
 │   │   ├── dns.js       # Modal de registros DNS do domínio
+│   │   ├── php.js       # Modal da versão do PHP do domínio
 │   │   ├── session-pill.js / session-status.js  # Validade do token
 │   │   ├── jwt.js       # Leitura/validação do token colado
 │   │   └── demo.js      # Botão "Ver demonstração"
