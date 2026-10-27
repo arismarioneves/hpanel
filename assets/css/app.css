@@ -374,6 +374,18 @@ textarea.input { resize: vertical; }
 .repo-output { display: grid; gap: var(--s2); }
 .repo-sep { border-top: 1px solid var(--border); }
 
+/* ===== DNS ===== */
+.dns-ns { display: flex; flex-wrap: wrap; gap: var(--s2); align-items: center; }
+.dns-list { display: grid; gap: var(--s2); max-height: 420px; overflow-y: auto; }
+.dns-record { display: grid; gap: var(--s2); padding: var(--s3); border: 1px solid var(--border); border-radius: var(--r2); background: var(--surface-2); }
+.dns-head { display: flex; flex-wrap: wrap; gap: var(--s2); align-items: center; }
+.dns-head .row { margin-left: auto; }
+.dns-name { font-weight: 600; overflow-wrap: anywhere; }
+.dns-values { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s1); }
+.dns-values li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--s2); align-items: center; }
+.dns-value { overflow-wrap: anywhere; font-size: .85rem; }
+.dns-edit { border-top: 1px solid var(--border); padding-top: var(--s3); }
+
 /* ===== Conectar ===== */
 .connect-layout { display: grid; gap: var(--s4); grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: start; }
 .guide { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s4); }

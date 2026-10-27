@@ -12,6 +12,8 @@ final class HostingerSource implements DataSource
     private const PAGE_SIZE = 25;
     private const MAX_PAGES = 50;
     private const KEY_EXISTS = 9999;
+    /** Zona DNS do cliente: leitura, gravação (PATCH) e exclusão (DELETE) no mesmo caminho. */
+    private const DNS_PATH = '/api/dns/v1/direct/zone/resource-records';
     /** Séries LVE (CloudLinux) devolvidas por metrics/lve, na ordem exibida. */
     public const METRICS = ['cpu', 'memory', 'ep', 'nproc', 'io', 'iops'];
 
@@ -268,6 +270,68 @@ final class HostingerSource implements DataSource
     public function deleteGitKey(string $username, string $domain, int $orderId): void
     {
         $this->json('DELETE', self::accountPath($username) . '/git-key', self::scope($username, $domain, $orderId));
+    }
+
+    public function dnsZone(string $domain): array
+    {
+        $query = '?domain=' . rawurlencode($domain);
+        $data = $this->json('GET', self::DNS_PATH . $query)['data'] ?? [];
+        $records = [];
+        foreach (is_array($data) ? $data : [] as $set) {
+            if (!is_array($set) || !is_string($set['name'] ?? null) || !is_string($set['type'] ?? null)) {
+                continue;
+            }
+            $contents = [];
+            foreach (is_array($set['records'] ?? null) ? $set['records'] : [] as $record) {
+                if (is_array($record) && is_string($record['content'] ?? null)) {
+                    $contents[] = self::unquote($record['content']);
+                }
+            }
+            if ($contents !== []) {
+                $records[] = ['name' => $set['name'], 'type' => $set['type'], 'ttl' => (int) ($set['ttl'] ?? 0), 'contents' => $contents];
+            }
+        }
+        $ns = $this->json('GET', '/api/dns/v1/direct/nameservers' . $query)['data']['nameservers'] ?? [];
+        return [
+            'nameservers' => array_values(array_filter(is_array($ns) ? $ns : [], 'is_string')),
+            'records' => $records,
+        ];
+    }
+
+    public function saveDnsRecords(string $domain, string $name, string $type, int $ttl, array $contents, bool $overwrite): void
+    {
+        $r = $this->raw('PATCH', self::DNS_PATH, [], [
+            'domain' => $domain,
+            'resource_records' => [[
+                'name' => $name,
+                'type' => $type,
+                'ttl' => $ttl,
+                'records' => array_map(static fn(string $c): array => ['content' => $c, 'disabled' => false], array_values($contents)),
+            ]],
+            'overwrite' => $overwrite,
+        ]);
+        if ($r['status'] >= 200 && $r['status'] < 300) {
+            return;
+        }
+        // 4xx aqui é recusa da própria zona (conteúdo fora do formato do tipo, conflito com outro registro).
+        if ($r['status'] >= 400 && $r['status'] < 500 && $r['status'] !== 401) {
+            throw ApiError::invalid(self::reason($r['json']) ?? 'A Hostinger recusou esse registro. Confira o tipo, o nome e o conteúdo.');
+        }
+        $this->fail($r['status'], 'PATCH dns zone');
+    }
+
+    public function deleteDnsRecords(string $domain, string $name, string $type): void
+    {
+        $this->json('DELETE', self::DNS_PATH, [], ['domain' => $domain, 'filters' => [['name' => $name, 'type' => $type]]]);
+    }
+
+    /** A Hostinger devolve TXT/SPF entre aspas e aceita a gravação sem elas; o painel trabalha sempre sem. */
+    private static function unquote(string $content): string
+    {
+        $inner = strlen($content) >= 2 && str_starts_with($content, '"') && str_ends_with($content, '"')
+            ? substr($content, 1, -1)
+            : null;
+        return $inner !== null && !str_contains($inner, '"') ? $inner : $content;
     }
 
     /** @return array{status:int, json:?array} */

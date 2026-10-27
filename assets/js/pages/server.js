@@ -10,6 +10,7 @@ import { formatDate, formatMb, formatNumber, level, percent, relTime } from '../
 import { areaChart, donut } from '../chart.js';
 import { groupSites } from '../sites.js';
 import { openGitModal } from '../git.js';
+import { openDnsModal } from '../dns.js';
 import { renderCron } from '../cron.js';
 import * as favs from '../favorites.js';
 
@@ -349,6 +350,7 @@ function siteRow(site, children = [], isChild = false) {
         iconButton('folder', 'Gerenciador de arquivos', () => openExternal('file-browser', { orderId, domain: site.domain })),
         dbButton,
         isChild ? null : iconButton('git', 'Git e auto deploy', () => openGitModal({ orderId, domain: site.domain })),
+        isChild ? null : iconButton('globe', 'Registros DNS', () => openDnsModal({ orderId, domain: site.domain })),
         iconButton('code', 'Versão PHP', () => { phpDomain = site.domain; location.hash = 'ferramentas'; phpControls?.select(site.domain); }),
         h('a', {
           class: 'btn btn-ghost btn-icon btn-sm', href: `https://hpanel.hostinger.com/websites/${encodeURIComponent(site.domain)}`,

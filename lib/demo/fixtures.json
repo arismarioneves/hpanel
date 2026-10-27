@@ -693,5 +693,121 @@
   "cronOutput": {
     "DemoCron02": "--2026-10-09 03:00:01--  https://aurora.example/backup/run\nResolving aurora.example (aurora.example)... 203.0.113.11\nConnecting to aurora.example (aurora.example)|203.0.113.11|:443... connected.\nHTTP request sent, awaiting response... 200 OK\nLength: 2 [text/html]\nSaving to: '/dev/null'\n\n2026-10-09 03:00:02 (1.21 MB/s) - '/dev/null' saved [2/2]",
     "DemoCron04": "--2026-10-09 12:00:04--  https://blog.aurora.example/autocron/index.php\nConnecting to blog.aurora.example (blog.aurora.example)|203.0.113.11|:443... connected.\nHTTP request sent, awaiting response... 500 Internal Server Error\n2026-10-09 12:00:05 ERROR 500: Internal Server Error."
+  },
+  "dnsZone": {
+    "aurora.example": {
+      "nameservers": [
+        "ns1.dns-parking.com",
+        "ns2.dns-parking.com"
+      ],
+      "records": [
+        {
+          "name": "@",
+          "type": "A",
+          "ttl": 14400,
+          "contents": [
+            "203.0.113.10"
+          ]
+        },
+        {
+          "name": "www",
+          "type": "CNAME",
+          "ttl": 14400,
+          "contents": [
+            "@"
+          ]
+        },
+        {
+          "name": "@",
+          "type": "MX",
+          "ttl": 14400,
+          "contents": [
+            "5 mx1.hostinger.com",
+            "10 mx2.hostinger.com"
+          ]
+        },
+        {
+          "name": "@",
+          "type": "TXT",
+          "ttl": 14400,
+          "contents": [
+            "v=spf1 include:_spf.mail.hostinger.com ~all"
+          ]
+        },
+        {
+          "name": "_dmarc",
+          "type": "TXT",
+          "ttl": 14400,
+          "contents": [
+            "v=DMARC1; p=none"
+          ]
+        },
+        {
+          "name": "loja",
+          "type": "A",
+          "ttl": 3600,
+          "contents": [
+            "203.0.113.10"
+          ]
+        },
+        {
+          "name": "blog",
+          "type": "A",
+          "ttl": 3600,
+          "contents": [
+            "203.0.113.10"
+          ]
+        }
+      ]
+    },
+    "cafe-do-porto.example": {
+      "nameservers": [
+        "ns1.dns-parking.com",
+        "ns2.dns-parking.com"
+      ],
+      "records": [
+        {
+          "name": "@",
+          "type": "A",
+          "ttl": 14400,
+          "contents": [
+            "203.0.113.11"
+          ]
+        },
+        {
+          "name": "www",
+          "type": "CNAME",
+          "ttl": 14400,
+          "contents": [
+            "@"
+          ]
+        },
+        {
+          "name": "@",
+          "type": "MX",
+          "ttl": 14400,
+          "contents": [
+            "5 mx1.hostinger.com",
+            "10 mx2.hostinger.com"
+          ]
+        },
+        {
+          "name": "@",
+          "type": "TXT",
+          "ttl": 14400,
+          "contents": [
+            "v=spf1 include:_spf.mail.hostinger.com ~all"
+          ]
+        },
+        {
+          "name": "_dmarc",
+          "type": "TXT",
+          "ttl": 14400,
+          "contents": [
+            "v=DMARC1; p=none"
+          ]
+        }
+      ]
+    }
   }
 }

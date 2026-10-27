@@ -170,4 +170,60 @@ final class ValidateTest extends TestCase
         $this->expectException(ApiError::class);
         Validate::jwt('jwt=' . $t);
     }
+
+    public function testDnsTypeUppercasesKnownTypes(): void
+    {
+        self::assertSame('CNAME', Validate::dnsType('cname'));
+        $this->expectException(ApiError::class);
+        Validate::dnsType('ALIAS');
+    }
+
+    public function testDnsNameAcceptsRootWildcardAndUnderscoreLabels(): void
+    {
+        self::assertSame('@', Validate::dnsName(''));
+        self::assertSame('@', Validate::dnsName(' @ '));
+        self::assertSame('_dmarc', Validate::dnsName('_dmarc'));
+        self::assertSame('s1._domainkey', Validate::dnsName('s1._domainkey'));
+        self::assertSame('*', Validate::dnsName('*'));
+    }
+
+    #[DataProvider('badDnsNames')]
+    public function testDnsNameRejects(mixed $v): void
+    {
+        $this->expectException(ApiError::class);
+        Validate::dnsName($v);
+    }
+
+    public static function badDnsNames(): array
+    {
+        return [['www..a'], ['www a'], ['www/@'], [str_repeat('a', 64)], [str_repeat('a.', 200) . 'a'], [null], [['www']]];
+    }
+
+    public function testDnsTtlStaysInsideTheRangeHostingerAccepts(): void
+    {
+        self::assertSame(60, Validate::dnsTtl('60'));
+        self::assertSame(86400, Validate::dnsTtl(86400));
+        foreach (['59', 86401, '', null, '1.5'] as $bad) {
+            try {
+                Validate::dnsTtl($bad);
+                self::fail('esperava ApiError');
+            } catch (ApiError $e) {
+                self::assertSame('invalid_input', $e->errorCode);
+            }
+        }
+    }
+
+    public function testDnsContentsTrimsAndRejectsEmptyOrControlCharacters(): void
+    {
+        self::assertSame(['203.0.113.1', '203.0.113.2'], Validate::dnsContents([' 203.0.113.1 ', '203.0.113.2']));
+        self::assertSame(['v=spf1 ~all'], Validate::dnsContents('v=spf1 ~all'));
+        foreach ([[], [''], ["linha\nquebrada"], [str_repeat('x', 2049)], array_fill(0, 51, 'x')] as $bad) {
+            try {
+                Validate::dnsContents($bad);
+                self::fail('esperava ApiError');
+            } catch (ApiError $e) {
+                self::assertSame('invalid_input', $e->errorCode);
+            }
+        }
+    }
 }

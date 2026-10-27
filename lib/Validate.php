@@ -117,6 +117,63 @@ final class Validate
         throw ApiError::invalid('Tarefa cron inválida.');
     }
 
+    /** Tipos que a Hostinger aceita no editor de zona. */
+    public const DNS_TYPES = ['A', 'AAAA', 'CNAME', 'MX', 'TXT', 'NS', 'SRV', 'CAA'];
+
+    public static function dnsType(mixed $v): string
+    {
+        $t = is_string($v) ? strtoupper(trim($v)) : '';
+        if (in_array($t, self::DNS_TYPES, true)) {
+            return $t;
+        }
+        throw ApiError::invalid('Tipo de registro inválido.');
+    }
+
+    /** `@` para o domínio raiz ou um subdomínio relativo (curingas e rótulos com `_` são aceitos). */
+    public static function dnsName(mixed $v): string
+    {
+        $n = is_string($v) ? trim($v) : null;
+        if ($n === '') {
+            $n = '@';
+        }
+        if ($n === null) {
+            throw ApiError::invalid('Nome inválido. Use "@" para o domínio ou um subdomínio, como "www".');
+        }
+        if (strlen($n) <= 253 && preg_match('/^(?:@|[A-Za-z0-9_*-]{1,63}(?:\.[A-Za-z0-9_-]{1,63})*)$/D', $n) === 1) {
+            return $n;
+        }
+        throw ApiError::invalid('Nome inválido. Use "@" para o domínio ou um subdomínio, como "www".');
+    }
+
+    public static function dnsTtl(mixed $v): int
+    {
+        $ttl = is_int($v) || (is_string($v) && preg_match('/^\d{1,7}$/D', $v) === 1) ? (int) $v : -1;
+        if ($ttl >= 60 && $ttl <= 86400) {
+            return $ttl;
+        }
+        throw ApiError::invalid('TTL inválido. Informe um valor entre 60 e 86400 segundos.');
+    }
+
+    /**
+     * Conteúdos do conjunto `name`+`type`: um por linha na interface, sem linha vazia.
+     * @return list<string>
+     */
+    public static function dnsContents(mixed $v): array
+    {
+        $items = [];
+        foreach (is_array($v) ? $v : [$v] as $item) {
+            $c = is_string($item) ? trim($item) : '';
+            if ($c === '' || strlen($c) > 2048 || preg_match('/[\x00-\x1F\x7F]/', $c) === 1) {
+                throw ApiError::invalid('Conteúdo inválido. Informe um valor por linha, de até 2048 caracteres.');
+            }
+            $items[] = $c;
+        }
+        if ($items === [] || count($items) > 50) {
+            throw ApiError::invalid('Informe de 1 a 50 conteúdos para o registro.');
+        }
+        return $items;
+    }
+
     public static function jwt(mixed $v): string
     {
         $t = is_string($v) ? trim($v) : '';

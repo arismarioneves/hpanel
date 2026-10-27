@@ -68,4 +68,20 @@ interface DataSource
     public function createGitKey(string $username, string $domain, int $orderId): string;
 
     public function deleteGitKey(string $username, string $domain, int $orderId): void;
+
+    /**
+     * Zona DNS do domínio. Cada item é um conjunto `name`+`type` com um ou mais conteúdos.
+     * @return array{nameservers:list<string>, records:list<array{name:string, type:string, ttl:int, contents:list<string>}>}
+     */
+    public function dnsZone(string $domain): array;
+
+    /**
+     * Grava o conjunto `name`+`type` com os conteúdos informados.
+     * `overwrite` substitui o conjunto existente (edição); sem ele a Hostinger acrescenta (criação).
+     * @param list<string> $contents
+     */
+    public function saveDnsRecords(string $domain, string $name, string $type, int $ttl, array $contents, bool $overwrite): void;
+
+    /** Remove o conjunto `name`+`type` inteiro. */
+    public function deleteDnsRecords(string $domain, string $name, string $type): void;
 }

@@ -23,6 +23,7 @@ Painel para gerenciar todos os seus sites da Hostinger em um só lugar, sem nave
 - **🐘 Versão PHP** - Altere a versão PHP de qualquer domínio
 - **🔑 Chave SSH (Git)** - Veja, crie ou recrie a chave SSH de deploy de cada servidor
 - **🌿 Git e auto deploy** - Repositórios de cada domínio: criar, implantar na hora, ver a saída do último deploy, copiar o webhook e excluir
+- **🌐 Registros DNS** - Zona de cada domínio: ver os registros e os nameservers, criar, editar e excluir (A, AAAA, CNAME, MX, TXT, NS, SRV, CAA)
 - **📈 Uso** - Disco, inodes, RAM, CPU; respostas em cache na aba (exibe na hora e atualiza em segundo plano)
 - **📉 Gráficos de recursos** - CPU, memória, PHP workers, processos, I/O e IOPS em 1 h / 6 h / 24 h / 7 dias / 30 dias, com média, pico, limite do plano e marcação de quando o limite foi atingido
 - **🛡️ Antimalware** - Status do Monarx na visão geral do servidor (protegido, arquivos suspeitos, último scan)
@@ -34,7 +35,7 @@ Painel para gerenciar todos os seus sites da Hostinger em um só lugar, sem nave
 
 ## 🧪 Modo demonstração
 
-O botão **Ver demonstração** na página inicial abre o painel completo com dados fictícios (`lib/demo/fixtures.json`, domínios `.example`). Nenhuma chamada é feita à Hostinger e ações que alteram algo (versão PHP, chave SSH, Git, cron jobs) ficam indisponíveis. Para sair, use **Conectar sua conta** ou **Sair do demo**.
+O botão **Ver demonstração** na página inicial abre o painel completo com dados fictícios (`lib/demo/fixtures.json`, domínios `.example`). Nenhuma chamada é feita à Hostinger e ações que alteram algo (versão PHP, chave SSH, Git, cron jobs, registros DNS) ficam indisponíveis. Para sair, use **Conectar sua conta** ou **Sair do demo**.
 
 ## ⌨️ Busca Ctrl+K
 
@@ -51,6 +52,14 @@ Dentro da modal dá para:
 - Ver a **saída do último deploy**.
 - **Copiar o webhook** de auto deploy — ele fica mascarado por padrão. Trate o token como senha: quem o tiver dispara um deploy nesse site.
 - **Excluir** o repositório (os arquivos já publicados permanecem no servidor).
+
+## 🌐 Registros DNS
+
+O botão de DNS na lista de sites abre a zona **do domínio** (só nas linhas de domínio: subdomínio não tem zona própria, seus registros ficam na zona do pai).
+
+A Hostinger agrupa a zona por **nome + tipo**, e é esse conjunto que o painel edita: um conteúdo por linha, todos com o mesmo TTL. Na edição, nome e tipo ficam travados — mudá-los criaria outro conjunto sem apagar o atual; para isso, exclua e crie de novo. Excluir remove o conjunto inteiro.
+
+Conteúdos de TXT/SPF são exibidos e gravados sem as aspas que a Hostinger adiciona. O MX leva a prioridade no próprio conteúdo (`10 mx1.hostinger.com`), assim como SRV (`10 5 5060 sip.exemplo.com`) e CAA (`0 issue "letsencrypt.org"`).
 
 ## ⏰ Cron jobs
 
@@ -215,6 +224,7 @@ HPanel/
 │   │   ├── swr.js       # Cache stale-while-revalidate (sessionStorage)
 │   │   ├── chart.js     # Gráficos SVG da visão geral (sem biblioteca)
 │   │   ├── cron.js      # Aba Cron jobs (+ cron-expr.js: presets, validação e descrição)
+│   │   ├── dns.js       # Modal de registros DNS do domínio
 │   │   ├── session-pill.js / session-status.js  # Validade do token
 │   │   ├── jwt.js       # Leitura/validação do token colado
 │   │   └── demo.js      # Botão "Ver demonstração"
@@ -258,6 +268,8 @@ O dashboard usa APIs internas do hPanel (não oficiais):
 - `/api/wh-api/api/hapi/v1/accounts/{username}/metrics/lve` - Séries de CPU, memória, I/O, IOPS, PHP workers e processos
 - `/api/wh-api/api/hapi/v1/accounts/{username}/malware/overview` - Status do antimalware
 - `/api/wh-api/api/hapi/v1/accounts/{username}/cron-jobs` - Cron jobs (GET/POST; `/{pwkey}` DELETE; `/{pwkey}/output` saída da última execução)
+- `/api/dns/v1/direct/zone/resource-records` - Zona DNS do domínio (GET lista; PATCH grava, com `overwrite` na edição; DELETE remove por nome + tipo)
+- `/api/dns/v1/direct/nameservers` - Nameservers do domínio
 - `/api/wh-api/api/hapi/v1/accounts/{username}/file-browser-link` - Gerenciador de arquivos (com `vhost` = pasta do site; sem = raiz da conta)
 
 ### Limitações

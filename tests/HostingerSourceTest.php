@@ -303,4 +303,70 @@ Deployment finished"]])]);
         (new HostingerSource($http, 't', ''))->deleteGitKey('u', 'd.com', 1);
         self::assertSame('DELETE', $http->calls[0]['method']);
     }
+
+    public function testDnsZoneGroupsContentsUnquotesTextAndReadsNameservers(): void
+    {
+        $http = new FakeTransport([
+            self::ok(['data' => [
+                ['name' => '@', 'type' => 'TXT', 'ttl' => 14400, 'records' => [['content' => '"v=spf1 ~all"']]],
+                ['name' => '@', 'type' => 'MX', 'ttl' => 14400, 'records' => [['content' => '5 mx1.hostinger.com'], ['content' => '10 mx2.hostinger.com']]],
+                ['name' => 'quebrado', 'type' => 'A'],
+                ['type' => 'A', 'ttl' => 60, 'records' => [['content' => '203.0.113.1']]],
+            ]]),
+            self::ok(['data' => ['nameservers' => ['ns1.dns-parking.com', 'ns2.dns-parking.com', 42]]]),
+        ]);
+        $zone = (new HostingerSource($http, 't', ''))->dnsZone('loja.com');
+
+        self::assertSame([
+            ['name' => '@', 'type' => 'TXT', 'ttl' => 14400, 'contents' => ['v=spf1 ~all']],
+            ['name' => '@', 'type' => 'MX', 'ttl' => 14400, 'contents' => ['5 mx1.hostinger.com', '10 mx2.hostinger.com']],
+        ], $zone['records']);
+        self::assertSame(['ns1.dns-parking.com', 'ns2.dns-parking.com'], $zone['nameservers']);
+        self::assertStringContainsString('domain=loja.com', $http->calls[0]['url']);
+    }
+
+    public function testSaveDnsRecordsSendsOneResourceRecordSet(): void
+    {
+        $http = new FakeTransport([self::ok(['data' => null])]);
+        (new HostingerSource($http, 't', ''))->saveDnsRecords('loja.com', 'www', 'A', 3600, ['203.0.113.1', '203.0.113.2'], true);
+
+        self::assertSame('PATCH', $http->calls[0]['method']);
+        self::assertSame([
+            'domain' => 'loja.com',
+            'resource_records' => [[
+                'name' => 'www',
+                'type' => 'A',
+                'ttl' => 3600,
+                'records' => [
+                    ['content' => '203.0.113.1', 'disabled' => false],
+                    ['content' => '203.0.113.2', 'disabled' => false],
+                ],
+            ]],
+            'overwrite' => true,
+        ], json_decode($http->calls[0]['body'], true));
+    }
+
+    public function testSaveDnsRecordsSurfacesTheRefusalFromHostinger(): void
+    {
+        $http = new FakeTransport([['status' => 422, 'body' => '{"message":"Invalid record content"}']]);
+        try {
+            (new HostingerSource($http, 't', ''))->saveDnsRecords('loja.com', '@', 'A', 3600, ['nao-e-ip'], false);
+            self::fail('esperava ApiError');
+        } catch (ApiError $e) {
+            self::assertSame('invalid_input', $e->errorCode);
+            self::assertSame('Invalid record content', $e->getMessage());
+        }
+    }
+
+    public function testDeleteDnsRecordsFiltersByNameAndType(): void
+    {
+        $http = new FakeTransport([['status' => 204, 'body' => '']]);
+        (new HostingerSource($http, 't', ''))->deleteDnsRecords('loja.com', 'www', 'CNAME');
+
+        self::assertSame('DELETE', $http->calls[0]['method']);
+        self::assertSame(
+            ['domain' => 'loja.com', 'filters' => [['name' => 'www', 'type' => 'CNAME']]],
+            json_decode($http->calls[0]['body'], true),
+        );
+    }
 }

@@ -158,6 +158,21 @@ final class DemoSource implements DataSource
         throw self::blocked();
     }
 
+    public function dnsZone(string $domain): array
+    {
+        return $this->fx['dnsZone'][$domain] ?? ['nameservers' => [], 'records' => []];
+    }
+
+    public function saveDnsRecords(string $domain, string $name, string $type, int $ttl, array $contents, bool $overwrite): void
+    {
+        throw self::blocked();
+    }
+
+    public function deleteDnsRecords(string $domain, string $name, string $type): void
+    {
+        throw self::blocked();
+    }
+
     public static function blocked(): ApiError
     {
         return ApiError::forbidden(self::BLOCKED);

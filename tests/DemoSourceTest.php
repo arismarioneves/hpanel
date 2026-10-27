@@ -107,6 +107,8 @@ final class DemoSourceTest extends TestCase
         yield 'deploy repo' => [static fn(DemoSource $d) => $d->deployGitRepo('u900001', 'aurora.example', 900001, 611001)];
         yield 'create cron' => [static fn(DemoSource $d) => $d->createCronJob('u900001', 'aurora.example', 900001, '0 0 * * *', 'echo oi')];
         yield 'delete cron' => [static fn(DemoSource $d) => $d->deleteCronJob('u900001', 'aurora.example', 900001, 'DemoCron01')];
+        yield 'save dns' => [static fn(DemoSource $d) => $d->saveDnsRecords('aurora.example', 'www', 'A', 3600, ['203.0.113.10'], false)];
+        yield 'delete dns' => [static fn(DemoSource $d) => $d->deleteDnsRecords('aurora.example', 'www', 'A')];
     }
 
     /** @dataProvider blocked */
