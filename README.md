@@ -19,7 +19,8 @@ Painel para gerenciar todos os seus sites da Hostinger em um só lugar, sem nave
 - **🔎 Busca Ctrl+K** - Paleta de busca rápida por sites e servidores em toda a conta
 - **🌐 Websites** - Domínios, subdomínios e addons de cada servidor
 - **📁 Gerenciador de Arquivos** - Link direto para cada domínio ou para a raiz da conta (botão no topo do servidor)
-- **🗄️ Bancos de dados** - Lista bancos com acesso ao phpMyAdmin
+- **🗄️ Bancos de dados** - Aba **Bancos** com todos os bancos da conta e o site vinculado a cada um; na linha de cada site, os bancos dele. Criar (banco + usuário vinculados a um site), trocar senha, permissões, trocar o site vinculado, reparar, excluir e phpMyAdmin
+- **🌍 MySQL remoto** - Na aba **Bancos**: liberar e remover IPs (ou qualquer host) para conectar no MySQL de fora da Hostinger
 - **🐘 Versão PHP** - Modal na linha do site: troca a versão do PHP daquele domínio
 - **🔑 Chave SSH (Git)** - Aba **Ferramentas** do servidor (é da conta inteira): veja, crie ou recrie a chave SSH de deploy
 - **🌿 Git e auto deploy** - Repositórios de cada domínio: criar, implantar na hora, ver a saída do último deploy, copiar o webhook e excluir
@@ -52,6 +53,14 @@ Dentro da modal dá para:
 - Ver a **saída do último deploy**.
 - **Copiar o webhook** de auto deploy — ele fica mascarado por padrão. Trate o token como senha: quem o tiver dispara um deploy nesse site.
 - **Excluir** o repositório (os arquivos já publicados permanecem no servidor).
+
+## 🗄️ Bancos de dados
+
+- **Criar banco**: na aba **Bancos** (escolhendo o site vinculado) ou ao final da lista de bancos de um site (com o site já fixado). Nome e usuário recebem o prefixo `<usuário>_` da conta (até 14 caracteres depois dele); o usuário acompanha o nome até ser editado. A senha precisa de 8+ caracteres com minúscula, maiúscula e número — há botão para gerar uma senha forte e copiar.
+- **Site vinculado**: só organiza a lista (o banco e as credenciais não mudam). Bancos antigos podem estar **sem site**; eles aparecem só na aba **Bancos**, onde dá para vinculá-los.
+- **Permissões**: os 18 privilégios MySQL do usuário, com atalhos "Marcar todas" e "Só leitura". O painel sempre envia a lista completa — a Hostinger revoga tudo quando recebe um privilégio desconhecido.
+- **Reparar** (tabelas corrompidas), **trocar senha** e **excluir** (apaga banco, tabelas e usuário; sem volta).
+- **MySQL remoto**: libere um IPv4/IPv6 ou qualquer host (`%`) por banco. Conecte no host do banco (Visão geral), porta 3306.
 
 ## 🌐 Registros DNS
 
@@ -224,6 +233,7 @@ HPanel/
 │   │   ├── swr.js       # Cache stale-while-revalidate (sessionStorage)
 │   │   ├── chart.js     # Gráficos SVG da visão geral (sem biblioteca)
 │   │   ├── cron.js      # Aba Cron jobs (+ cron-expr.js: presets, validação e descrição)
+│   │   ├── databases.js # Bancos: lista, modais (criar, senha, permissões, site) e MySQL remoto (+ db-rules.js)
 │   │   ├── dns.js       # Modal de registros DNS do domínio
 │   │   ├── php.js       # Modal da versão do PHP do domínio
 │   │   ├── session-pill.js / session-status.js  # Validade do token
@@ -262,7 +272,9 @@ O dashboard usa APIs internas do hPanel (não oficiais):
 
 - `/api/wh-api/api/hapi/v1/orders/websites` - Lista servidores (paginado)
 - `/api/rest-hosting/v3/account` - Detalhes e uso da conta
-- `/api/wh-api/api/hapi/v1/accounts/{username}/databases` - Lista bancos
+- `/api/wh-api/api/hapi/v1/accounts/{username}/databases` - Bancos (GET lista paginada: `onlyAssigned=1&vhost=` só os do site, sem `vhost` a conta toda; POST cria com `vhost`, `name`, `user`, `password`)
+- `/api/wh-api/api/hapi/v1/accounts/{username}/databases/{db}` - DELETE exclui; PATCH `/change-password`, `/change-permissions`, `/repair`, `/change-vhost`
+- `/api/wh-api/api/hapi/v1/accounts/{username}/databases/remote-connections` - MySQL remoto (GET lista; `/{db}/remote-connections` POST/DELETE com `ip`)
 - `/api/wh-api/api/hapi/v1/accounts/{username}/vhosts/{domain}/php/version` - Versão PHP
 - `/api/wh-api/api/hapi/v1/accounts/{username}/git-key` - Chave SSH de Git (GET/POST/DELETE)
 - `/api/auth/api/external/v1/auth/refresh` - Renovação do JWT (sessão deslizante)

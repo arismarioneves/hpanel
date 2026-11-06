@@ -509,58 +509,345 @@
       {
         "name": "u900001_wp",
         "user": "u900001_wpadm",
-        "diskUsageMb": 512.4
+        "domain": "aurora.example",
+        "permissions": [
+          "Alter",
+          "Alter routine",
+          "Create",
+          "Create routine",
+          "Create temporary tables",
+          "Create view",
+          "Delete",
+          "Drop",
+          "Event",
+          "Execute",
+          "Index",
+          "Insert",
+          "Lock tables",
+          "References",
+          "Select",
+          "Show view",
+          "Trigger",
+          "Update"
+        ],
+        "createdAt": "2024-02-11T10:20:00Z",
+        "diskUsageMb": 512.4,
+        "maxSizeMb": 6144
       },
       {
         "name": "u900001_loja",
         "user": "u900001_lojaadm",
-        "diskUsageMb": 128.0
+        "domain": "loja.aurora.example",
+        "permissions": [
+          "Alter",
+          "Alter routine",
+          "Create",
+          "Create routine",
+          "Create temporary tables",
+          "Create view",
+          "Delete",
+          "Drop",
+          "Event",
+          "Execute",
+          "Index",
+          "Insert",
+          "Lock tables",
+          "References",
+          "Select",
+          "Show view",
+          "Trigger",
+          "Update"
+        ],
+        "createdAt": "2024-06-03T14:05:00Z",
+        "diskUsageMb": 128.0,
+        "maxSizeMb": 6144
       },
       {
         "name": "u900001_blog",
         "user": "u900001_blogadm",
-        "diskUsageMb": 64.7
+        "domain": "blog.aurora.example",
+        "permissions": [
+          "Alter",
+          "Alter routine",
+          "Create",
+          "Create routine",
+          "Create temporary tables",
+          "Create view",
+          "Delete",
+          "Drop",
+          "Event",
+          "Execute",
+          "Index",
+          "Insert",
+          "Lock tables",
+          "References",
+          "Select",
+          "Show view",
+          "Trigger",
+          "Update"
+        ],
+        "createdAt": "2024-09-21T09:40:00Z",
+        "diskUsageMb": 64.7,
+        "maxSizeMb": 6144
+      },
+      {
+        "name": "u900001_cafe",
+        "user": "u900001_cafeadm",
+        "domain": "cafe-do-porto.example",
+        "permissions": [
+          "Alter",
+          "Alter routine",
+          "Create",
+          "Create routine",
+          "Create temporary tables",
+          "Create view",
+          "Delete",
+          "Drop",
+          "Event",
+          "Execute",
+          "Index",
+          "Insert",
+          "Lock tables",
+          "References",
+          "Select",
+          "Show view",
+          "Trigger",
+          "Update"
+        ],
+        "createdAt": "2025-01-15T18:12:00Z",
+        "diskUsageMb": 33.1,
+        "maxSizeMb": 6144
+      },
+      {
+        "name": "u900001_relat",
+        "user": "u900001_leitura",
+        "domain": null,
+        "permissions": [
+          "Select",
+          "Show view",
+          "Lock tables"
+        ],
+        "createdAt": "2025-03-02T08:00:00Z",
+        "diskUsageMb": 8.2,
+        "maxSizeMb": 6144
       }
     ],
     "900002": [
       {
         "name": "u900002_wp",
         "user": "u900002_wpadm",
-        "diskUsageMb": 512.4
+        "domain": "estudio-norte.example",
+        "permissions": [
+          "Alter",
+          "Alter routine",
+          "Create",
+          "Create routine",
+          "Create temporary tables",
+          "Create view",
+          "Delete",
+          "Drop",
+          "Event",
+          "Execute",
+          "Index",
+          "Insert",
+          "Lock tables",
+          "References",
+          "Select",
+          "Show view",
+          "Trigger",
+          "Update"
+        ],
+        "createdAt": "2024-04-08T11:00:00Z",
+        "diskUsageMb": 512.4,
+        "maxSizeMb": 6144
       },
       {
         "name": "u900002_loja",
         "user": "u900002_lojaadm",
-        "diskUsageMb": 128.0
+        "domain": "pet-feliz.example",
+        "permissions": [
+          "Alter",
+          "Alter routine",
+          "Create",
+          "Create routine",
+          "Create temporary tables",
+          "Create view",
+          "Delete",
+          "Drop",
+          "Event",
+          "Execute",
+          "Index",
+          "Insert",
+          "Lock tables",
+          "References",
+          "Select",
+          "Show view",
+          "Trigger",
+          "Update"
+        ],
+        "createdAt": "2024-11-19T16:30:00Z",
+        "diskUsageMb": 128.0,
+        "maxSizeMb": 6144
       }
     ],
     "900003": [
       {
         "name": "u900003_wp",
         "user": "u900003_wpadm",
-        "diskUsageMb": 512.4
+        "domain": "nordic-tech.example",
+        "permissions": [
+          "Alter",
+          "Alter routine",
+          "Create",
+          "Create routine",
+          "Create temporary tables",
+          "Create view",
+          "Delete",
+          "Drop",
+          "Event",
+          "Execute",
+          "Index",
+          "Insert",
+          "Lock tables",
+          "References",
+          "Select",
+          "Show view",
+          "Trigger",
+          "Update"
+        ],
+        "createdAt": "2023-12-01T12:00:00Z",
+        "diskUsageMb": 512.4,
+        "maxSizeMb": 6144
       },
       {
         "name": "u900003_loja",
         "user": "u900003_lojaadm",
-        "diskUsageMb": 128.0
+        "domain": "moda-verao.example",
+        "permissions": [
+          "Alter",
+          "Alter routine",
+          "Create",
+          "Create routine",
+          "Create temporary tables",
+          "Create view",
+          "Delete",
+          "Drop",
+          "Event",
+          "Execute",
+          "Index",
+          "Insert",
+          "Lock tables",
+          "References",
+          "Select",
+          "Show view",
+          "Trigger",
+          "Update"
+        ],
+        "createdAt": "2024-05-10T13:00:00Z",
+        "diskUsageMb": 128.0,
+        "maxSizeMb": 6144
       },
       {
         "name": "u900003_blog",
         "user": "u900003_blogadm",
-        "diskUsageMb": 64.7
+        "domain": "docs.nordic-tech.example",
+        "permissions": [
+          "Alter",
+          "Alter routine",
+          "Create",
+          "Create routine",
+          "Create temporary tables",
+          "Create view",
+          "Delete",
+          "Drop",
+          "Event",
+          "Execute",
+          "Index",
+          "Insert",
+          "Lock tables",
+          "References",
+          "Select",
+          "Show view",
+          "Trigger",
+          "Update"
+        ],
+        "createdAt": "2024-07-22T10:10:00Z",
+        "diskUsageMb": 64.7,
+        "maxSizeMb": 6144
       },
       {
         "name": "u900003_app",
         "user": "u900003_appadm",
-        "diskUsageMb": 12.3
+        "domain": "api.nordic-tech.example",
+        "permissions": [
+          "Alter",
+          "Alter routine",
+          "Create",
+          "Create routine",
+          "Create temporary tables",
+          "Create view",
+          "Delete",
+          "Drop",
+          "Event",
+          "Execute",
+          "Index",
+          "Insert",
+          "Lock tables",
+          "References",
+          "Select",
+          "Show view",
+          "Trigger",
+          "Update"
+        ],
+        "createdAt": "2025-02-14T19:45:00Z",
+        "diskUsageMb": 12.3,
+        "maxSizeMb": 6144
       }
     ],
     "900004": [
       {
         "name": "u900004_wp",
         "user": "u900004_wpadm",
-        "diskUsageMb": 512.4
+        "domain": "consultoria-ramos.example",
+        "permissions": [
+          "Alter",
+          "Alter routine",
+          "Create",
+          "Create routine",
+          "Create temporary tables",
+          "Create view",
+          "Delete",
+          "Drop",
+          "Event",
+          "Execute",
+          "Index",
+          "Insert",
+          "Lock tables",
+          "References",
+          "Select",
+          "Show view",
+          "Trigger",
+          "Update"
+        ],
+        "createdAt": "2025-05-05T09:00:00Z",
+        "diskUsageMb": 512.4,
+        "maxSizeMb": 1024
+      }
+    ]
+  },
+  "remoteMysql": {
+    "900001": [
+      {
+        "db": "u900001_relat",
+        "user": "u900001_leitura",
+        "ip": "198.51.100.23"
+      }
+    ],
+    "900003": [
+      {
+        "db": "u900003_app",
+        "user": "u900003_appadm",
+        "ip": "%"
       }
     ]
   },

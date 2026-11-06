@@ -163,6 +163,75 @@ final class ValidateTest extends TestCase
         ];
     }
 
+    public function testDbSuffixFollowsHpanelRules(): void
+    {
+        self::assertSame('loja_2', Validate::dbSuffix('loja_2', 'Nome'));
+        self::assertSame(str_repeat('a', 14), Validate::dbSuffix(str_repeat('a', 14), 'Nome'));
+    }
+
+    #[DataProvider('badDbInput')]
+    public function testDbInputsRejectGarbage(string $method, mixed $v): void
+    {
+        $this->expectException(ApiError::class);
+        $method === 'dbSuffix' ? Validate::dbSuffix($v, 'Nome') : Validate::dbPassword($v);
+    }
+
+    public static function badDbInput(): array
+    {
+        return [
+            ['dbSuffix', ''],
+            ['dbSuffix', '_loja'],
+            ['dbSuffix', str_repeat('a', 15)],
+            ['dbSuffix', 'loja-1'],
+            ['dbSuffix', "loja\n"],
+            ['dbSuffix', ' loja '],
+            ['dbSuffix', 'u1_loja;drop'],
+            ['dbSuffix', 7],
+            ['dbPassword', 'Curta1'],
+            ['dbPassword', 'semmaiuscula1'],
+            ['dbPassword', 'SEMMINUSCULA1'],
+            ['dbPassword', 'SemNumeroAqui'],
+            ['dbPassword', "Quebra\nLinha1"],
+            ['dbPassword', 'Aa1' . str_repeat('x', 126)],
+            ['dbPassword', null],
+        ];
+    }
+
+    public function testAccountDbRequiresTheAccountPrefix(): void
+    {
+        self::assertSame('u1_loja', Validate::accountDb('u1_loja', 'u1'));
+        $this->expectException(ApiError::class);
+        Validate::accountDb('u2_loja', 'u1');
+    }
+
+    public function testDbPermissionsKeepKnownPrivilegesInCanonicalOrder(): void
+    {
+        self::assertSame(['Insert', 'Select'], Validate::dbPermissions(['Select', 'Insert']));
+        self::assertSame([], Validate::dbPermissions([]));
+        foreach ([['Foo'], ['select'], ['a' => 'Select'], 'Select', null] as $bad) {
+            try {
+                Validate::dbPermissions($bad);
+                self::fail('esperava ApiError');
+            } catch (ApiError) {
+                self::addToAssertionCount(1);
+            }
+        }
+    }
+
+    public function testRemoteIpAcceptsIpv4Ipv6AndAnyHost(): void
+    {
+        self::assertSame('203.0.113.10', Validate::remoteIp(' 203.0.113.10 '));
+        self::assertSame('2001:db8::1', Validate::remoteIp('2001:db8::1'));
+        self::assertSame('%', Validate::remoteIp('%'));
+        $this->expectException(ApiError::class);
+        Validate::remoteIp('203.0.113.%');
+    }
+
+    public function testDbPasswordKeepsSpacesAndSymbols(): void
+    {
+        self::assertSame(' Senha #1 ', Validate::dbPassword(' Senha #1 '));
+    }
+
     public function testJwtTrimsAndRejectsNonTokens(): void
     {
         $t = TestJwt::make(2000000000);

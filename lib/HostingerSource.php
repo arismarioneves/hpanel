@@ -39,10 +39,106 @@ final class HostingerSource implements DataSource
         return $this->json('GET', '/api/rest-hosting/v3/account', self::scope($username, $domain, $orderId))['data'] ?? [];
     }
 
-    public function databases(string $username, string $domain, int $orderId): array
+    public function databases(string $username, string $domain, int $orderId, bool $onlyDomain): array
     {
-        $path = self::accountPath($username) . '/databases?page=1&perPage=100&onlyAssigned=0&vhost=' . rawurlencode($domain);
-        return $this->json('GET', $path, self::scope($username, $domain, $orderId))['data']['resources'] ?? [];
+        // `onlyAssigned=0` com `vhost` mistura os bancos do site com os sem vínculo; sem `vhost` vem a conta toda.
+        $filter = $onlyDomain ? '&onlyAssigned=1&vhost=' . rawurlencode($domain) : '&onlyAssigned=0';
+        $all = [];
+        for ($page = 1; $page <= self::MAX_PAGES; $page++) {
+            $path = self::dbPath($username) . "?page={$page}&perPage=100{$filter}";
+            $data = $this->json('GET', $path, self::scope($username, $domain, $orderId))['data'] ?? [];
+            foreach (is_array($data['resources'] ?? null) ? $data['resources'] : [] as $db) {
+                if (is_array($db) && is_string($db['name'] ?? null)) {
+                    $all[] = self::database($db);
+                }
+            }
+            if ($page >= (int) ($data['pagination']['totalPages'] ?? 1)) {
+                break;
+            }
+        }
+        return $all;
+    }
+
+    private static function database(array $db): array
+    {
+        $granted = [];
+        $perms = is_array($db['permissions'] ?? null) ? $db['permissions'] : [];
+        foreach (Validate::DB_PRIVILEGES as $p) {
+            if (!empty($perms[$p])) {
+                $granted[] = $p;
+            }
+        }
+        return [
+            'name' => $db['name'],
+            'user' => (string) ($db['user'] ?? ''),
+            'domain' => self::str($db['vhost'] ?? null),
+            'permissions' => $granted,
+            'createdAt' => self::str($db['createdAt'] ?? null),
+            'diskUsageMb' => (float) ($db['diskUsageMb'] ?? 0),
+            'maxSizeMb' => (float) ($db['maxSizeMb'] ?? 0),
+        ];
+    }
+
+    public function createDatabase(string $username, string $domain, int $orderId, string $name, string $user, #[\SensitiveParameter] string $password): void
+    {
+        $this->mutate('POST', self::dbPath($username), self::scope($username, $domain, $orderId), [
+            'vhost' => $domain,
+            'name' => $name,
+            'user' => $user,
+            'password' => $password,
+        ], 'A Hostinger recusou esse banco. Confira se o nome e o usuário já existem ou se o limite do plano foi atingido.');
+    }
+
+    public function deleteDatabase(string $username, string $domain, int $orderId, string $db): void
+    {
+        $this->mutate('DELETE', self::dbPath($username, $db), self::scope($username, $domain, $orderId), null, 'A Hostinger recusou a exclusão desse banco.');
+    }
+
+    public function changeDatabasePassword(string $username, string $domain, int $orderId, string $db, #[\SensitiveParameter] string $password): void
+    {
+        $this->mutate('PATCH', self::dbPath($username, $db) . '/change-password', self::scope($username, $domain, $orderId), ['password' => $password], 'A Hostinger recusou essa senha.');
+    }
+
+    public function setDatabasePermissions(string $username, string $domain, int $orderId, string $db, array $granted): void
+    {
+        // Sempre as 18 chaves: a Hostinger trata chave ausente/desconhecida como revogação de tudo.
+        $permissions = [];
+        foreach (Validate::DB_PRIVILEGES as $p) {
+            $permissions[$p] = in_array($p, $granted, true) ? 1 : 0;
+        }
+        $this->mutate('PATCH', self::dbPath($username, $db) . '/change-permissions', self::scope($username, $domain, $orderId), ['permissions' => $permissions], 'A Hostinger recusou essas permissões.');
+    }
+
+    public function repairDatabase(string $username, string $domain, int $orderId, string $db): void
+    {
+        $this->mutate('PATCH', self::dbPath($username, $db) . '/repair', self::scope($username, $domain, $orderId), null, 'A Hostinger recusou o reparo desse banco.');
+    }
+
+    public function setDatabaseSite(string $username, string $domain, int $orderId, string $db, string $site): void
+    {
+        $this->mutate('PATCH', self::dbPath($username, $db) . '/change-vhost', self::scope($username, $domain, $orderId), ['vhost' => $site], 'A Hostinger recusou vincular esse banco ao site.');
+    }
+
+    public function remoteConnections(string $username, string $domain, int $orderId): array
+    {
+        $data = $this->json('GET', self::dbPath($username) . '/remote-connections', self::scope($username, $domain, $orderId))['data'] ?? [];
+        $list = [];
+        foreach (is_array($data) ? $data : [] as $c) {
+            if (is_array($c) && is_string($c['databaseName'] ?? null) && is_string($c['ip'] ?? null)) {
+                $list[] = ['db' => $c['databaseName'], 'user' => (string) ($c['databaseUser'] ?? ''), 'ip' => $c['ip']];
+            }
+        }
+        return $list;
+    }
+
+    public function addRemoteConnection(string $username, string $domain, int $orderId, string $db, string $ip): void
+    {
+        $this->mutate('POST', self::dbPath($username, $db) . '/remote-connections', self::scope($username, $domain, $orderId), ['ip' => $ip], 'A Hostinger recusou esse acesso remoto. Confira o IP.');
+    }
+
+    public function deleteRemoteConnection(string $username, string $domain, int $orderId, string $db, string $ip): void
+    {
+        $this->mutate('DELETE', self::dbPath($username, $db) . '/remote-connections', self::scope($username, $domain, $orderId), ['ip' => $ip], 'A Hostinger recusou remover esse acesso remoto.');
     }
 
     public function phpMyAdminLink(string $username, string $db, string $domain, int $orderId): string
@@ -364,6 +460,22 @@ final class HostingerSource implements DataSource
         $this->fail($ok ? 502 : $r['status'], "{$method} {$path}");
     }
 
+    /**
+     * Mutação sem corpo útil na resposta (a Hostinger devolve 204). 4xx (exceto 401) é recusa da própria
+     * Hostinger (nome em uso, senha fraca, IP inválido): vira `invalid_input` com a mensagem dela ou `$refusal`.
+     */
+    private function mutate(string $method, string $path, array $headers, ?array $body, string $refusal): void
+    {
+        $r = $this->raw($method, $path, $headers, $body);
+        if ($r['status'] >= 200 && $r['status'] < 300) {
+            return;
+        }
+        if ($r['status'] >= 400 && $r['status'] < 500 && $r['status'] !== 401) {
+            throw ApiError::invalid(self::reason($r['json']) ?? $refusal);
+        }
+        $this->fail($r['status'], $method . ' ' . strtok($path, '?'));
+    }
+
     private function fail(int $status, string $what): never
     {
         if ($status === 401) {
@@ -401,6 +513,11 @@ final class HostingerSource implements DataSource
     private static function accountPath(string $username): string
     {
         return '/api/wh-api/api/hapi/v1/accounts/' . rawurlencode($username);
+    }
+
+    private static function dbPath(string $username, ?string $db = null): string
+    {
+        return self::accountPath($username) . '/databases' . ($db === null ? '' : '/' . rawurlencode($db));
     }
 
     private static function phpPath(string $username, string $domain): string

@@ -15,8 +15,39 @@ interface DataSource
 
     public function account(string $username, string $domain, int $orderId): array;
 
-    /** @return list<array> */
-    public function databases(string $username, string $domain, int $orderId): array;
+    /**
+     * Bancos MySQL. Com `onlyDomain`, só os vinculados ao site `domain`; sem, todos da conta.
+     * `domain` de cada banco é o site vinculado (null = sem vínculo); `permissions` são os privilégios concedidos.
+     * @return list<array{name:string, user:string, domain:?string, permissions:list<string>, createdAt:?string, diskUsageMb:float, maxSizeMb:float}>
+     */
+    public function databases(string $username, string $domain, int $orderId, bool $onlyDomain): array;
+
+    /**
+     * Cria o banco e o usuário MySQL (com todas as permissões nele), vinculados ao site `domain`.
+     * `name` e `user` já incluem o prefixo `<username>_` da conta.
+     */
+    public function createDatabase(string $username, string $domain, int $orderId, string $name, string $user, string $password): void;
+
+    /** Exclui o banco e o usuário dele. */
+    public function deleteDatabase(string $username, string $domain, int $orderId, string $db): void;
+
+    public function changeDatabasePassword(string $username, string $domain, int $orderId, string $db, string $password): void;
+
+    /** @param list<string> $granted privilégios de Validate::DB_PRIVILEGES; os demais são revogados */
+    public function setDatabasePermissions(string $username, string $domain, int $orderId, string $db, array $granted): void;
+
+    /** Repara as tabelas do banco (mysqlcheck --repair). */
+    public function repairDatabase(string $username, string $domain, int $orderId, string $db): void;
+
+    /** Vincula o banco ao site `site` (um domínio da mesma conta). */
+    public function setDatabaseSite(string $username, string $domain, int $orderId, string $db, string $site): void;
+
+    /** @return list<array{db:string, user:string, ip:string}> ip `%` = qualquer host */
+    public function remoteConnections(string $username, string $domain, int $orderId): array;
+
+    public function addRemoteConnection(string $username, string $domain, int $orderId, string $db, string $ip): void;
+
+    public function deleteRemoteConnection(string $username, string $domain, int $orderId, string $db, string $ip): void;
 
     public function phpMyAdminLink(string $username, string $db, string $domain, int $orderId): string;
 

@@ -37,9 +37,55 @@ final class DemoSource implements DataSource
         return $this->fx['accounts'][(string) $orderId] ?? throw ApiError::notFound('Servidor não encontrado nesta conta.');
     }
 
-    public function databases(string $username, string $domain, int $orderId): array
+    public function databases(string $username, string $domain, int $orderId, bool $onlyDomain): array
     {
-        return $this->fx['databases'][(string) $orderId] ?? throw ApiError::notFound('Servidor não encontrado nesta conta.');
+        $all = $this->fx['databases'][(string) $orderId] ?? throw ApiError::notFound('Servidor não encontrado nesta conta.');
+        return $onlyDomain ? array_values(array_filter($all, static fn(array $db): bool => $db['domain'] === $domain)) : $all;
+    }
+
+    public function createDatabase(string $username, string $domain, int $orderId, string $name, string $user, #[\SensitiveParameter] string $password): void
+    {
+        throw self::blocked();
+    }
+
+    public function deleteDatabase(string $username, string $domain, int $orderId, string $db): void
+    {
+        throw self::blocked();
+    }
+
+    public function changeDatabasePassword(string $username, string $domain, int $orderId, string $db, #[\SensitiveParameter] string $password): void
+    {
+        throw self::blocked();
+    }
+
+    public function setDatabasePermissions(string $username, string $domain, int $orderId, string $db, array $granted): void
+    {
+        throw self::blocked();
+    }
+
+    public function repairDatabase(string $username, string $domain, int $orderId, string $db): void
+    {
+        throw self::blocked();
+    }
+
+    public function setDatabaseSite(string $username, string $domain, int $orderId, string $db, string $site): void
+    {
+        throw self::blocked();
+    }
+
+    public function remoteConnections(string $username, string $domain, int $orderId): array
+    {
+        return $this->fx['remoteMysql'][(string) $orderId] ?? [];
+    }
+
+    public function addRemoteConnection(string $username, string $domain, int $orderId, string $db, string $ip): void
+    {
+        throw self::blocked();
+    }
+
+    public function deleteRemoteConnection(string $username, string $domain, int $orderId, string $db, string $ip): void
+    {
+        throw self::blocked();
     }
 
     public function phpMyAdminLink(string $username, string $db, string $domain, int $orderId): string
