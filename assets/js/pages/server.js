@@ -12,6 +12,7 @@ import { groupSites } from '../sites.js';
 import { openGitModal } from '../git.js';
 import { openDnsModal } from '../dns.js';
 import { openPhpModal } from '../php.js';
+import { mountDatabases, remoteMysqlSection } from '../databases.js';
 import { renderCron } from '../cron.js';
 import * as favs from '../favorites.js';
 
@@ -385,41 +386,22 @@ favs.subscribe(() => {
   }
 });
 
-async function toggleDbs(button, box, domain) {
+/** Bancos vinculados ao site, carregados ao abrir pela primeira vez. */
+function toggleDbs(button, box, domain) {
   const opening = box.hidden;
   box.hidden = !opening;
   button.setAttribute('aria-expanded', String(opening));
   if (!opening || box.dataset.loaded) return;
-  clear(box).append(...skeletonLines(2));
-  try {
-    const { databases } = await get('databases', { orderId, domain });
-    box.dataset.loaded = '1';
-    clear(box).append(dbList(databases, domain));
-  } catch (err) {
-    clear(box).append(errorBlock(err, () => { box.hidden = true; toggleDbs(button, box, domain); }));
-  }
-}
-
-function dbList(databases, domain) {
-  if (!databases.length) return emptyBlock('Nenhum banco de dados.', 'Crie bancos pelo hPanel; eles aparecem aqui.');
-  return h('ul', { class: 'db-list' }, databases.map((db) => h('li', { class: 'db' },
-    icon('database'),
-    h('div', { class: 'db-id' }, h('strong', {}, db.name), h('span', { class: 'muted small' }, `${db.user || '—'} · ${formatMb(db.diskUsageMb || 0)}`)),
-    h('button', {
-      type: 'button', class: 'btn btn-secondary btn-sm',
-      on: { click: () => openExternal('phpmyadmin', domain ? { orderId, domain, db: db.name } : { orderId, db: db.name }) },
-    }, 'phpMyAdmin', icon('external')))));
+  box.dataset.loaded = '1';
+  mountDatabases(box, { orderId, sites: detail.server.websites || [], domain });
 }
 
 /* ===== Bancos ===== */
-async function renderBancos(p) {
-  clear(p).append(...skeletonLines(4));
-  try {
-    const { databases } = await get('databases', { orderId });
-    clear(p).append(section('Bancos de dados da conta', dbList(databases, null), detail.username));
-  } catch (err) {
-    clear(p).append(errorBlock(err, () => renderBancos(p)));
-  }
+function renderBancos(p) {
+  const list = h('div');
+  const remote = remoteMysqlSection({ orderId, dbHost: detail.account?.server?.database?.hostname });
+  p.append(section('Bancos de dados da conta', list, detail.username), remote.el);
+  mountDatabases(list, { orderId, sites: detail.server.websites || [] }, (databases) => remote.setDatabases(databases));
 }
 
 /* ===== Ferramentas: o que é da conta inteira (os ajustes por domínio ficam nos botões de cada site). */
