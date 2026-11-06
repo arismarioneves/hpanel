@@ -52,7 +52,10 @@ final class DemoSourceTest extends TestCase
         $disk = $account['usage']['storage'];
         self::assertGreaterThanOrEqual(0.9, $disk['value'] / $disk['limit'], 'servidor 1 com disco em nível crítico');
         self::assertStringStartsWith('203.0.113.', $account['ip']);
-        self::assertNotEmpty($demo->databases('u900001', 'aurora.example', 900001));
+        $all = $demo->databases('u900001', 'aurora.example', 900001, false);
+        self::assertContains(null, array_column($all, 'domain'), 'demo tem banco sem site vinculado');
+        self::assertSame(['u900001_wp'], array_column($demo->databases('u900001', 'aurora.example', 900001, true), 'name'));
+        self::assertSame('%', $demo->remoteConnections('u900003', 'nordic-tech.example', 900003)[0]['ip']);
         self::assertSame('8.2', $demo->phpVersion('u900001', 'aurora.example', 900001)['current']);
         self::assertStringStartsWith('ssh-rsa ', (string) $demo->gitKey('u900001', 'aurora.example', 900001));
         self::assertCount(2, $demo->gitRepos('u900001', 'aurora.example', 900001));
@@ -96,6 +99,14 @@ final class DemoSourceTest extends TestCase
     /** @return iterable<string, array{\Closure(DemoSource): mixed}> */
     public static function blocked(): iterable
     {
+        yield 'create database' => [static fn(DemoSource $d) => $d->createDatabase('u900001', 'aurora.example', 900001, 'u900001_novo', 'u900001_novo', 'Senha123')];
+        yield 'delete database' => [static fn(DemoSource $d) => $d->deleteDatabase('u900001', 'aurora.example', 900001, 'u900001_wp')];
+        yield 'database password' => [static fn(DemoSource $d) => $d->changeDatabasePassword('u900001', 'aurora.example', 900001, 'u900001_wp', 'Senha123')];
+        yield 'database permissions' => [static fn(DemoSource $d) => $d->setDatabasePermissions('u900001', 'aurora.example', 900001, 'u900001_wp', ['Select'])];
+        yield 'repair database' => [static fn(DemoSource $d) => $d->repairDatabase('u900001', 'aurora.example', 900001, 'u900001_wp')];
+        yield 'database site' => [static fn(DemoSource $d) => $d->setDatabaseSite('u900001', 'aurora.example', 900001, 'u900001_wp', 'cafe-do-porto.example')];
+        yield 'add remote' => [static fn(DemoSource $d) => $d->addRemoteConnection('u900001', 'aurora.example', 900001, 'u900001_wp', '203.0.113.9')];
+        yield 'delete remote' => [static fn(DemoSource $d) => $d->deleteRemoteConnection('u900001', 'aurora.example', 900001, 'u900001_relat', '198.51.100.23')];
         yield 'phpMyAdmin' => [static fn(DemoSource $d) => $d->phpMyAdminLink('u900001', 'u900001_wp', 'aurora.example', 900001)];
         yield 'file browser' => [static fn(DemoSource $d) => $d->fileBrowserLink('u900001', 'aurora.example', 900001)];
         yield 'root file browser' => [static fn(DemoSource $d) => $d->rootFileBrowserLink('u900001', 'aurora.example', 900001)];

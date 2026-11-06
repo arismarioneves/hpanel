@@ -161,6 +161,126 @@ final class HostingerSourceTest extends TestCase
         (new HostingerSource($http, 't', ''))->createCronJob('u1', 'd.com', 7, '99 * * * *', 'x');
     }
 
+    public function testCreateDatabasePostsVhostNameUserAndPasswordWithScope(): void
+    {
+        $http = new FakeTransport([['status' => 201, 'body' => '']]);
+        (new HostingerSource($http, 't', ''))->createDatabase('u1', 'loja.com', 7, 'u1_loja', 'u1_lojaadm', 'Senha123');
+
+        self::assertSame('POST', $http->calls[0]['method']);
+        self::assertStringContainsString('/accounts/u1/databases?', $http->calls[0]['url']);
+        self::assertContains('x-hpanel-domain: loja.com', $http->calls[0]['headers']);
+        self::assertSame(
+            ['vhost' => 'loja.com', 'name' => 'u1_loja', 'user' => 'u1_lojaadm', 'password' => 'Senha123'],
+            json_decode((string) $http->calls[0]['body'], true),
+        );
+    }
+
+    public function testCreateDatabaseSurfacesTheRefusalFromHostinger(): void
+    {
+        $http = new FakeTransport([['status' => 422, 'body' => '{"message":"Database already exists."}']]);
+        $this->expectExceptionObject(ApiError::invalid('Database already exists.'));
+        (new HostingerSource($http, 't', ''))->createDatabase('u1', 'loja.com', 7, 'u1_loja', 'u1_loja', 'Senha123');
+    }
+
+    public function testCreateDatabaseServerErrorIsUpstreamAndNeverEchoesThePassword(): void
+    {
+        foreach ([['status' => 500, 'body' => '{"message":"Senha123"}'], ['status' => 0]] as $resp) {
+            try {
+                (new HostingerSource(new FakeTransport([$resp]), 't', ''))->createDatabase('u1', 'loja.com', 7, 'u1_a', 'u1_a', 'Senha123');
+                self::fail('esperava ApiError');
+            } catch (ApiError $e) {
+                self::assertSame('upstream_unavailable', $e->errorCode);
+                self::assertStringNotContainsString('Senha123', $e->getMessage());
+            }
+        }
+    }
+
+    public function testDatabasesOfASiteUseOnlyAssignedAndNormalizeRows(): void
+    {
+        $http = new FakeTransport([self::ok(['data' => [
+            'resources' => [
+                ['name' => 'u1_loja', 'user' => 'u1_adm', 'vhost' => 'loja.com', 'permissions' => ['Select' => 1, 'Drop' => 0, 'Foo' => 1], 'createdAt' => '2024-03-18T11:57:24.000000Z', 'diskUsageMb' => 140, 'maxSizeMb' => 6144],
+                ['user' => 'sem-nome'],
+            ],
+            'pagination' => ['page' => 1, 'totalPages' => 1],
+        ]])]);
+        $dbs = (new HostingerSource($http, 't', ''))->databases('u1', 'loja.com', 7, true);
+
+        self::assertStringContainsString('/accounts/u1/databases?page=1&perPage=100&onlyAssigned=1&vhost=loja.com&', $http->calls[0]['url']);
+        self::assertSame([[
+            'name' => 'u1_loja', 'user' => 'u1_adm', 'domain' => 'loja.com', 'permissions' => ['Select'],
+            'createdAt' => '2024-03-18T11:57:24.000000Z', 'diskUsageMb' => 140.0, 'maxSizeMb' => 6144.0,
+        ]], $dbs);
+    }
+
+    public function testDatabasesOfTheAccountFollowPaginationAndKeepUnassigned(): void
+    {
+        $page = static fn(int $n, int $total, ?string $vhost) => self::ok(['data' => [
+            'resources' => [['name' => "u1_db{$n}", 'user' => "u1_db{$n}", 'vhost' => $vhost]],
+            'pagination' => ['page' => $n, 'totalPages' => $total],
+        ]]);
+        $http = new FakeTransport([$page(1, 2, 'a.com'), $page(2, 2, null)]);
+        $dbs = (new HostingerSource($http, 't', ''))->databases('u1', 'a.com', 7, false);
+
+        self::assertSame(['a.com', null], array_column($dbs, 'domain'));
+        self::assertStringNotContainsString('vhost=', $http->calls[0]['url']);
+        self::assertStringContainsString('page=2&', $http->calls[1]['url']);
+    }
+
+    public function testDatabasePermissionsAlwaysSendEveryKnownPrivilege(): void
+    {
+        $http = new FakeTransport([['status' => 204]]);
+        (new HostingerSource($http, 't', ''))->setDatabasePermissions('u1', 'a.com', 7, 'u1_loja', ['Select', 'Insert']);
+
+        self::assertSame('PATCH', $http->calls[0]['method']);
+        self::assertStringContainsString('/databases/u1_loja/change-permissions?', $http->calls[0]['url']);
+        $sent = json_decode((string) $http->calls[0]['body'], true)['permissions'];
+        self::assertCount(18, $sent);
+        self::assertSame(['Insert', 'Select'], array_keys(array_filter($sent)));
+    }
+
+    public function testDatabaseActionsHitTheirPaths(): void
+    {
+        $http = new FakeTransport(array_fill(0, 6, ['status' => 204]));
+        $s = new HostingerSource($http, 't', '');
+        $s->deleteDatabase('u1', 'a.com', 7, 'u1_loja');
+        $s->changeDatabasePassword('u1', 'a.com', 7, 'u1_loja', 'Senha123');
+        $s->repairDatabase('u1', 'a.com', 7, 'u1_loja');
+        $s->setDatabaseSite('u1', 'a.com', 7, 'u1_loja', 'b.com');
+        $s->addRemoteConnection('u1', 'a.com', 7, 'u1_loja', '%');
+        $s->deleteRemoteConnection('u1', 'a.com', 7, 'u1_loja', '203.0.113.10');
+
+        $seen = array_map(static fn(array $c): string => $c['method'] . ' ' . strtok(substr($c['url'], strpos($c['url'], '/databases')), '?') . ' ' . $c['body'], $http->calls);
+        self::assertSame([
+            'DELETE /databases/u1_loja {}',
+            'PATCH /databases/u1_loja/change-password {"password":"Senha123"}',
+            'PATCH /databases/u1_loja/repair {}',
+            'PATCH /databases/u1_loja/change-vhost {"vhost":"b.com"}',
+            'POST /databases/u1_loja/remote-connections {"ip":"%"}',
+            'DELETE /databases/u1_loja/remote-connections {"ip":"203.0.113.10"}',
+        ], $seen);
+    }
+
+    public function testRemoteConnectionsAreNormalized(): void
+    {
+        $http = new FakeTransport([self::ok(['data' => [
+            ['databaseName' => 'u1_loja', 'databaseUser' => 'u1_adm', 'ip' => '%'],
+            ['databaseName' => 'u1_x'],
+        ]])]);
+        self::assertSame(
+            [['db' => 'u1_loja', 'user' => 'u1_adm', 'ip' => '%']],
+            (new HostingerSource($http, 't', ''))->remoteConnections('u1', 'a.com', 7),
+        );
+        self::assertStringContainsString('/databases/remote-connections?', $http->calls[0]['url']);
+    }
+
+    public function testWeakDatabasePasswordSurfacesTheRefusal(): void
+    {
+        $http = new FakeTransport([['status' => 422, 'body' => '{"message":"The password field must be at least 8 characters. (and 2 more errors)"}']]);
+        $this->expectExceptionObject(ApiError::invalid('The password field must be at least 8 characters. (and 2 more errors)'));
+        (new HostingerSource($http, 't', ''))->changeDatabasePassword('u1', 'a.com', 7, 'u1_loja', 'abc');
+    }
+
     public function testDeleteAndOutputAddressTheJobByPwkey(): void
     {
         $http = new FakeTransport([['status' => 204], self::ok(['data' => ['output' => 'ERROR 500']])]);

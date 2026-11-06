@@ -36,6 +36,76 @@ final class Validate
         throw ApiError::invalid('Banco de dados inválido.');
     }
 
+    /** Banco da própria conta: o nome precisa começar com o prefixo `<username>_`. */
+    public static function accountDb(mixed $v, string $username): string
+    {
+        $db = self::dbName($v);
+        if ($username !== '' && str_starts_with($db, $username . '_')) {
+            return $db;
+        }
+        throw ApiError::invalid('Banco de dados inválido.');
+    }
+
+    /** Privilégios MySQL que o hPanel controla por usuário de banco. */
+    public const DB_PRIVILEGES = [
+        'Alter', 'Alter routine', 'Create', 'Create routine', 'Create temporary tables', 'Create view',
+        'Delete', 'Drop', 'Event', 'Execute', 'Index', 'Insert', 'Lock tables', 'References',
+        'Select', 'Show view', 'Trigger', 'Update',
+    ];
+
+    /**
+     * Privilégios concedidos (os ausentes são revogados). Nome fora da lista é recusado:
+     * a Hostinger aceita chave desconhecida e revoga tudo.
+     * @return list<string>
+     */
+    public static function dbPermissions(mixed $v): array
+    {
+        if (!is_array($v) || !array_is_list($v)) {
+            throw ApiError::invalid('Permissões inválidas.');
+        }
+        foreach ($v as $p) {
+            if (!is_string($p) || !in_array($p, self::DB_PRIVILEGES, true)) {
+                throw ApiError::invalid('Permissões inválidas.');
+            }
+        }
+        return array_values(array_intersect(self::DB_PRIVILEGES, $v));
+    }
+
+    /** IPv4/IPv6 de quem acessa o MySQL de fora, ou `%` para qualquer host. */
+    public static function remoteIp(mixed $v): string
+    {
+        $ip = is_string($v) ? trim($v) : '';
+        if ($ip === '%' || filter_var($ip, FILTER_VALIDATE_IP) !== false) {
+            return $ip;
+        }
+        throw ApiError::invalid('IP inválido. Informe um IPv4 ou IPv6, como 203.0.113.10, ou marque "Qualquer host".');
+    }
+
+    /**
+     * Parte do nome (banco ou usuário MySQL) digitada após o prefixo `<username>_` da conta.
+     * Mesmas regras do formulário do hPanel: até 14 caracteres, letras, números e `_`, sem começar com `_`.
+     */
+    public static function dbSuffix(mixed $v, string $what): string
+    {
+        if (is_string($v) && preg_match('/^(?!_)[A-Za-z0-9_]{1,14}$/D', $v) === 1) {
+            return $v;
+        }
+        throw ApiError::invalid("{$what} inválido. Use até 14 letras, números ou _ (sem começar com _).");
+    }
+
+    /** Senha do usuário MySQL: 8+ caracteres com minúscula, maiúscula e número (exigência do hPanel). */
+    public static function dbPassword(#[\SensitiveParameter] mixed $v): string
+    {
+        $p = is_string($v) ? $v : '';
+        $ok = strlen($p) >= 8 && strlen($p) <= 128
+            && preg_match('/[a-z]/', $p) === 1 && preg_match('/[A-Z]/', $p) === 1 && preg_match('/\d/', $p) === 1
+            && preg_match('/[\x00-\x1F\x7F]/', $p) === 0;
+        if ($ok) {
+            return $p;
+        }
+        throw ApiError::invalid('Senha inválida. Use de 8 a 128 caracteres, com letra minúscula, maiúscula e número.');
+    }
+
     public static function repoId(mixed $v): int
     {
         if (is_int($v) && $v > 0) {
