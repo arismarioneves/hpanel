@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 require __DIR__ . '/../lib/autoload.php';
 
-use HPanel\{ApiError, Context, HostingerSource, Http, Jwt, Request, Validate};
+use HPanel\{ApiError, Context, HostingerAuth, HostingerSource, Http, Jwt, Request, Validate};
 
 const DEFAULT_GAID = 'GA1.1.000000000.0000000000';
 
@@ -27,10 +27,14 @@ Http::handle(['POST'], static function (Request $req, Context $ctx): array {
         throw $e;
     }
 
-    $ctx->session->start([
+    $data = [
         'token' => $token,
         'gaid' => DEFAULT_GAID,
         'cache' => ['servers' => ['at' => $ctx->now(), 'value' => $servers]],
-    ]);
+    ];
+    if ($req->flag('extension')) {
+        $data['via'] = HostingerAuth::VIA_EXTENSION;
+    }
+    $ctx->session->start($data);
     return ['servers' => count($servers)];
 }, false);

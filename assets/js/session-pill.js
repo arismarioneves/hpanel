@@ -1,6 +1,7 @@
 import { get, post } from './api.js';
+import { renewViaExtension } from './extension.js';
 import { h, icon, clear } from './h.js';
-import { pillState } from './session-status.js';
+import { pillState, WARN_MINUTES } from './session-status.js';
 import { toast } from './toast.js';
 
 const POLL_MS = 5 * 60 * 1000;
@@ -34,7 +35,11 @@ function openPop() {
   clear(pop).append(...[
     h('p', { class: 'session-pop-title' }, h('span', { class: `dot dot-${state.tone}`, 'aria-hidden': 'true' }), state.label),
     h('p', { class: 'muted' }, validity(session, state)),
-    state.kind === 'ok' ? h('p', { class: 'muted' }, 'Renova sozinho enquanto você usa o painel.') : null,
+    state.kind === 'ok'
+      ? h('p', { class: 'muted' }, session.via === 'extension'
+        ? 'Renovada pela extensão, junto com o seu login no hPanel.'
+        : 'Renova sozinho enquanto você usa o painel.')
+      : null,
     h('div', { class: 'session-pop-actions' },
       state.canRenew
         ? h('button', { type: 'button', class: 'btn btn-secondary btn-sm', on: { click: renew } }, icon('refresh'), 'Renovar agora')
@@ -51,8 +56,8 @@ async function renew(event) {
   const button = event.currentTarget;
   button.disabled = true;
   try {
-    const data = await post('renew');
-    render({ connected: true, demo: false, expired: false, ...data });
+    const data = session.via === 'extension' ? await renewViaExtension() : await post('renew');
+    render({ ...session, expired: false, ...data });
     toast('Sessão renovada.', 'ok');
     closePop(true);
   } catch (err) {
@@ -93,6 +98,11 @@ async function refresh() {
     render(await get('session'));
   } catch {
     /* offline ou falha momentânea: mantém o último estado */
+    return;
+  }
+  // Sessão da extensão: o servidor não renova; perto de expirar, a página pede o token novo à extensão.
+  if (session?.via === 'extension' && (session.expired || (session.minutesLeft ?? Infinity) <= WARN_MINUTES)) {
+    renewViaExtension().then((data) => render({ ...session, expired: false, ...data }), () => {});
   }
 }
 
@@ -127,6 +137,8 @@ if (slot) {
   window.addEventListener('hp:session-expired', () => {
     if (session?.connected && !session.demo) render({ ...session, expired: true, minutesLeft: 0 });
   });
+
+  window.addEventListener('hp:session-renewed', refresh);
 
   setInterval(refresh, POLL_MS);
   document.addEventListener('visibilitychange', () => {

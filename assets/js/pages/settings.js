@@ -1,5 +1,6 @@
 import '../app.js';
 import { clearCache, get, post } from '../api.js';
+import { renewViaExtension } from '../extension.js';
 import { h, icon, $, $$, clear } from '../h.js';
 import { setThemeMode, themeMode } from '../theme.js';
 import * as favs from '../favorites.js';
@@ -18,12 +19,12 @@ const statusLine = (dot, text, detail) => h('div', { class: 'stack' },
   h('div', { class: 'conn-status' }, h('span', { class: `dot ${dot}` }), text),
   detail ? h('span', { class: 'muted small' }, detail) : null);
 
-function renewButton() {
+function renewButton(viaExtension) {
   const button = h('button', { type: 'button', class: 'btn btn-secondary btn-sm' }, icon('refresh'), 'Renovar agora');
   button.addEventListener('click', async () => {
     busy(button, true);
     try {
-      await post('renew');
+      await (viaExtension ? renewViaExtension() : post('renew'));
       toast('Token renovado.', 'ok');
       refresh();
     } catch (err) {
@@ -85,11 +86,15 @@ async function refresh() {
 
   const minutes = s.minutesLeft;
   const near = minutes !== null && minutes <= 15;
+  const viaExtension = s.via === 'extension';
+  const renewal = viaExtension
+    ? 'renovado pela extensão, junto com o seu login no hPanel'
+    : 'renovado automaticamente enquanto você usa o painel';
   clear(state).append(
-    statusLine(near ? 'dot-warn' : 'dot-ok', 'Conectado à Hostinger', minutes === null
+    statusLine(near ? 'dot-warn' : 'dot-ok', viaExtension ? 'Conectado à Hostinger via extensão' : 'Conectado à Hostinger', minutes === null
       ? 'Validade do token desconhecida.'
-      : `Token válido por ${minutes} min · renovado automaticamente enquanto você usa o painel.`),
-    h('div', { class: 'row' }, renewButton(), connectLink('Trocar conta', false), logoutButton()));
+      : `Token válido por ${minutes} min · ${renewal}.`),
+    h('div', { class: 'row' }, renewButton(viaExtension), connectLink('Trocar conta', false), logoutButton()));
 }
 
 // Tema: claro / escuro / sistema.

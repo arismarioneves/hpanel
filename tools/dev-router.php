@@ -11,7 +11,7 @@ $path = rawurldecode((string) parse_url($uri, PHP_URL_PATH));
 $query = (string) parse_url($uri, PHP_URL_QUERY);
 
 $blocked = static fn(string $p): bool => !str_starts_with($p, '/.well-known/')
-    && preg_match('#(^|/)\.|^/(storage|lib|partials|tests|tools|vendor|docs)(/|$)|^/(config(\.exemplo)?\.php|composer\.(json|lock)|package\.json|phpunit\.xml)$#', $p) === 1;
+    && preg_match('#(^|/)\.|^/(storage|lib|partials|tests|tools|vendor|docs|extension)(/|$)|^/(config(\.exemplo)?\.php|composer\.(json|lock)|package\.json|phpunit\.xml)$#', $p) === 1;
 
 if ($blocked($path)) {
     http_response_code(403);

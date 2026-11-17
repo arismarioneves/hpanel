@@ -30,6 +30,7 @@ Painel para gerenciar todos os seus sites da Hostinger em um só lugar, sem nave
 - **🛡️ Antimalware** - Status do Monarx na visão geral do servidor (protegido, arquivos suspeitos, último scan)
 - **⏰ Cron jobs** - Aba própria em cada servidor: buscar, criar (script PHP ou comando), ver o resultado da última execução e excluir
 - **⏱️ Sessão** - Indicador no cabeçalho com a validade do token; renovação automática e em 1 clique
+- **🧩 Conectar via extensão** - Opcional: a extensão HPanel Conector traz o token da sua sessão no hPanel (login só no site da Hostinger) e o mantém renovado junto com ela
 - **🌓 Tema** - Claro, escuro ou seguir o sistema (em Configurações)
 
 ---
@@ -133,7 +134,7 @@ cp config.exemplo.php config.php
 No Apache o `.htaccess` já bloqueia tudo que não é público, serve as páginas e a API sem `.php` na URL (`/connect`, `/server?orderId=…`, `/api/session`) e entrega os assets versionados (`/assets/v/<versão>/…` → `/assets/…`, para que um deploy novo nunca misture JS/CSS novo com antigo do cache); um endereço com `.php` digitado recebe 301 para a forma sem extensão. No Nginx, use o bloco equivalente (instalação na **raiz** do domínio, `base => '/'`):
 
 ```nginx
-location ~ ^/(storage|lib|partials|tests|tools|vendor|docs)(/|$) { deny all; }
+location ~ ^/(storage|lib|partials|tests|tools|vendor|docs|extension)(/|$) { deny all; }
 location ~ ^/(config(\.exemplo)?\.php|composer\.(json|lock)|package\.json|phpunit\.xml)$ { deny all; }
 location ~ /\. { deny all; }
 location ~ ^/assets/v/[0-9a-f]+/(.+)$ { try_files /assets/$1 =404; }
@@ -143,7 +144,7 @@ location / { try_files $uri $uri/ $uri.php?$query_string; }
 Em **subpasta**, prefixe as regras com o mesmo caminho de `base`. Exemplo para `'base' => '/hpanel/'`:
 
 ```nginx
-location ~ ^/hpanel/(storage|lib|partials|tests|tools|vendor|docs)(/|$) { deny all; }
+location ~ ^/hpanel/(storage|lib|partials|tests|tools|vendor|docs|extension)(/|$) { deny all; }
 location ~ ^/hpanel/(config(\.exemplo)?\.php|composer\.(json|lock)|package\.json|phpunit\.xml)$ { deny all; }
 location ~ /\. { deny all; }
 location ~ ^/hpanel/assets/v/[0-9a-f]+/(.+)$ { try_files /hpanel/assets/$1 =404; }
@@ -181,6 +182,21 @@ O token começa com `eyJ` e é uma string longa. Exemplo:
 eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJpYXQiOjE3Mzc...
 ```
 
+### Atalho: extensão HPanel Conector (opcional)
+
+Em vez de copiar o cookie à mão, a extensão (Chrome ou Edge, Manifest V3, pasta `extension/`) lê o `jwt` da sua sessão no hPanel e o entrega ao painel.
+
+1. Na página **Conectar**, clique em **Baixar extensão (.zip)** (`download-extension` empacota a pasta `extension/`) e descompacte.
+2. Em `chrome://extensions` (ou `edge://extensions`), ative o **Modo do desenvolvedor** e use **Carregar sem compactação** na pasta `hpanel-conector`.
+3. Abra o seu HPanel, clique no ícone da extensão e em **Autorizar este painel**. A página recarrega e aparece o botão **Conectar via extensão**.
+4. Clique nele: se você já estiver logado no hPanel, conecta na hora; senão, abre o login da Hostinger numa janela própria (no domínio da Hostinger, com a barra de endereço visível) e conecta assim que o login termina.
+
+Como funciona:
+
+- O login é feito só no site da Hostinger. A extensão não captura requisições nem formulários: apenas lê o cookie `jwt` (HttpOnly, por isso só uma extensão alcança) com a API `chrome.cookies`.
+- Permissões: `cookies` e acesso a `hpanel.hostinger.com` e `hostinger.com` (o cookie `jwt` pode valer para o domínio inteiro, e o navegador só avisa mudanças de cookie nos domínios com permissão); o endereço do seu painel é uma permissão opcional, pedida só quando você clica em **Autorizar este painel** (revogável no próprio popup).
+- O token vai do content script direto para a API do painel (mesma origem, com o cabeçalho anti-CSRF); o JavaScript da página nunca o vê.
+
 ---
 
 ## 🔑 Chave SSH (Git)
@@ -201,9 +217,10 @@ O JWT do hPanel usa **sessão deslizante**: enquanto ainda não expirou de vez, 
 
 - **Automática**: em qualquer chamada à API do dashboard, se faltam **≤ 15 min** para o token expirar, o **servidor** o renova antes de responder — sem cron e sem nada rodando no navegador.
 - **Renovar agora**: botão na página de Configurações, útil depois de muito tempo sem usar.
+- **Conectado via extensão**: o servidor **não** chama o refresh, porque ele troca o token e derrubaria o seu login no hPanel. Quem renova é a extensão, no próprio navegador (direto ou, se a Hostinger recusar, dentro de uma aba do hPanel), e o painel recebe o token novo em `api/token`. Quando o hPanel renova a sessão por conta própria, a extensão repassa o token aos painéis abertos. Assim o painel e o hPanel usam sempre o mesmo token.
 - **Sair**: também em Configurações; apaga o token do servidor.
 
-> ⚠️ Se o token **expirar de vez**, o refresh falha e é preciso **colar o JWT novamente** na página Conectar.
+> ⚠️ Se o token **expirar de vez**, o refresh falha e é preciso **colar o JWT novamente** na página Conectar (ou, com a extensão, fazer login de novo no hPanel).
 
 ---
 
@@ -215,6 +232,8 @@ HPanel/
 ├── connect.php          # Conectar: colar o token JWT
 ├── server.php           # Servidor em abas (visão geral, sites, bancos, cron jobs, ferramentas)
 ├── settings.php         # Configurações (sessão, renovar, sair, tema)
+├── download-extension.php  # Entrega a pasta extension/ como .zip
+├── extension/           # Extensão HPanel Conector (Manifest V3; servida só pelo .zip)
 ├── config.exemplo.php   # Modelo de configuração local
 ├── .htaccess            # Bloqueia tudo que não é público
 ├── lib/                 # Núcleo: sessão cifrada, HTTP, cliente Hostinger, validação
@@ -238,6 +257,7 @@ HPanel/
 │   │   ├── php.js       # Modal da versão do PHP do domínio
 │   │   ├── session-pill.js / session-status.js  # Validade do token
 │   │   ├── jwt.js       # Leitura/validação do token colado
+│   │   ├── extension.js # Ponte com a extensão (postMessage)
 │   │   └── demo.js      # Botão "Ver demonstração"
 │   ├── img/             # Imagens (preview do dashboard)
 │   ├── fonts/           # Fonte Inter local
@@ -257,7 +277,8 @@ HPanel/
 - **CSRF**: checagem de origem + header obrigatório nas chamadas à API
 - **CSP restrita**, sem scripts ou estilos inline; fonte servida localmente
 - **Sem CORS**: a API só atende o próprio painel
-- **Rate limit** na conexão (colar token)
+- **Rate limit** na conexão (colar token) e na troca de token pela extensão
+- **Extensão**: só atua nos painéis que você autorizou, o token não passa pelo JavaScript da página e o login nunca sai do domínio da Hostinger
 - Checagem de **posse** do servidor/site antes de qualquer operação
 - **GC de sessões**: sessões paradas por 7 dias são apagadas; "Sair" remove o token
 - `storage/`, `lib/`, `config.php` e afins bloqueados na web (`.htaccess` / Nginx)
@@ -277,7 +298,7 @@ O dashboard usa APIs internas do hPanel (não oficiais):
 - `/api/wh-api/api/hapi/v1/accounts/{username}/databases/remote-connections` - MySQL remoto (GET lista; `/{db}/remote-connections` POST/DELETE com `ip`)
 - `/api/wh-api/api/hapi/v1/accounts/{username}/vhosts/{domain}/php/version` - Versão PHP
 - `/api/wh-api/api/hapi/v1/accounts/{username}/git-key` - Chave SSH de Git (GET/POST/DELETE)
-- `/api/auth/api/external/v1/auth/refresh` - Renovação do JWT (sessão deslizante)
+- `/api/auth/api/external/v1/auth/refresh` - Renovação do JWT (sessão deslizante); com a extensão, chamada pelo navegador, não pelo servidor
 - `/api/wh-api/api/hapi/v1/accounts/{username}/metrics/lve` - Séries de CPU, memória, I/O, IOPS, PHP workers e processos
 - `/api/wh-api/api/hapi/v1/accounts/{username}/malware/overview` - Status do antimalware
 - `/api/wh-api/api/hapi/v1/accounts/{username}/cron-jobs` - Cron jobs (GET/POST; `/{pwkey}` DELETE; `/{pwkey}/output` saída da última execução)
@@ -290,6 +311,7 @@ O dashboard usa APIs internas do hPanel (não oficiais):
 - As APIs podem mudar sem aviso (são internas)
 - Tokens JWT expiram após ~1 hora (mitigado pela renovação manual/automática)
 - Se o token expirar de vez sem renovar, é preciso recolar o JWT via login
+- A extensão é instalada em modo desenvolvedor (não está na Chrome Web Store) e não se atualiza sozinha: baixe o .zip de novo após atualizar o painel
 - O DELETE da chave SSH não é documentado pelo hPanel; se a API rejeitar, a mensagem de erro é exibida e a chave permanece intacta
 
 ---

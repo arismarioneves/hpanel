@@ -25,6 +25,11 @@ final class ApiError extends \RuntimeException
         return new self('session_expired', 'Sua sessão com a Hostinger terminou. Conecte novamente para continuar.', 401);
     }
 
+    public static function renewedByExtension(): self
+    {
+        return new self('renewed_by_extension', 'Esta conexão é renovada pela extensão do navegador, junto com o seu login no hPanel.', 409);
+    }
+
     public static function upstream(): self
     {
         return new self('upstream_unavailable', 'A Hostinger não respondeu. Tente novamente em instantes.', 502);
