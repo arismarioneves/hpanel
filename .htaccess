@@ -6,7 +6,7 @@ Options -Indexes
     # Nada fora da interface pública é servido pela web
     RewriteRule ^\.well-known/ - [L]
     RewriteRule (^|/)\. - [F,L]
-    RewriteRule ^(storage|lib|partials|tests|tools|vendor|docs)(/|$) - [F,L]
+    RewriteRule ^(storage|lib|partials|tests|tools|vendor|docs|extension)(/|$) - [F,L]
     RewriteRule ^(config(\.exemplo)?\.php|composer\.(json|lock)|package\.json|phpunit\.xml)$ - [F,L]
 
     # Assets versionados (assets/v/<versão>/…, gerados por View::asset) são os arquivos de assets/…

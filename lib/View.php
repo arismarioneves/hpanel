@@ -68,6 +68,7 @@ final class View
         $base = $ctx->config->base;
         $connected = $ctx->session->isConnected();
         $demo = $ctx->isDemo();
+        $viaExtension = HostingerAuth::viaExtension($ctx->session->data());
         $bootJson = json_encode($boot, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE);
         require App::root() . '/partials/layout.php';
         exit;

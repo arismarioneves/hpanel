@@ -39,6 +39,8 @@ HPanel é um painel leve para gerenciar vários servidores e sites da Hostinger 
 | `lib/Validate.php` | Validação de toda entrada (lança `ApiError::invalid`) |
 | `assets/js/pages/*.js` | Um módulo por página; `server.js` monta as abas do servidor |
 | `tools/dev-router.php` | Emula o `.htaccess` no `php -S` |
+| `extension/` | Extensão HPanel Conector (MV3): lê o cookie `jwt` do hPanel e o entrega ao painel; baixada via `download-extension` |
+| `assets/js/extension.js` | Ponte página ↔ extensão (postMessage); o token nunca passa pela página |
 
 ### Convenções
 
@@ -66,4 +68,4 @@ Smoke de interface: abra o painel e use **Ver demonstração** (sem conta Hostin
 
 - Nunca teste mutações (criar/excluir cron, trocar PHP, chave SSH, Git) na conta real de alguém sem autorização explícita; use o demo e os testes com `FakeTransport`.
 - O token JWT é segredo: nunca registre em log, fixture ou mensagem de erro.
-- `storage/`, `lib/`, `partials/`, `tests/`, `tools/`, `vendor/`, `docs/` e `config*.php` são bloqueados na web; mantenha `.htaccess`, `tools/dev-router.php` e o bloco Nginx do README em sincronia.
+- `storage/`, `lib/`, `partials/`, `tests/`, `tools/`, `vendor/`, `docs/`, `extension/` e `config*.php` são bloqueados na web; mantenha `.htaccess`, `tools/dev-router.php` e o bloco Nginx do README em sincronia.

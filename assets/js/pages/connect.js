@@ -1,6 +1,7 @@
 import '../app.js';
 import { clearCache, post } from '../api.js';
 import { startDemo } from '../demo.js';
+import { connectViaExtension, detectExtension } from '../extension.js';
 import { $, on } from '../h.js';
 import { inspectToken } from '../jwt.js';
 import { toast } from '../toast.js';
@@ -63,6 +64,37 @@ form.addEventListener('submit', async (event) => {
     } else {
       toast(err.message, 'danger');
     }
+  }
+});
+
+// Conectar via extensão: o botão ao lado de "Conectar" aparece quando a extensão está ativa nesta página.
+const extButton = $('[data-action="ext-connect"]');
+const extStatus = $('#extStatus');
+
+function setExtStatus(message, tone) {
+  extStatus.hidden = !message;
+  extStatus.textContent = message;
+  extStatus.className = tone ? `field-status field-status-${tone}` : 'field-status';
+}
+
+function showExtension() {
+  extButton.hidden = false;
+}
+
+detectExtension().then((version) => { if (version) showExtension(); });
+window.addEventListener('hp:extension-ready', showExtension);
+
+on(document, 'ext-connect', async (event, button) => {
+  busy(button, true);
+  setExtStatus('Se a janela da Hostinger abrir, faça o login nela.', '');
+  try {
+    const { servers } = await connectViaExtension();
+    clearCache();
+    setExtStatus(`✓ ${servers} ${servers === 1 ? 'servidor encontrado' : 'servidores encontrados'}`, 'ok');
+    setTimeout(() => location.assign('./'), SUCCESS_DELAY);
+  } catch (err) {
+    busy(button, false);
+    setExtStatus(err.message, 'error');
   }
 });
 

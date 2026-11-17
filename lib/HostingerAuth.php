@@ -8,6 +8,7 @@ namespace HPanel;
 final class HostingerAuth
 {
     public const THRESHOLD = 900; // renova se faltar <= 15 min
+    public const VIA_EXTENSION = 'extension';
 
     public function __construct(private HttpTransport $http)
     {
@@ -35,11 +36,45 @@ final class HostingerAuth
         return is_string($new) && Jwt::isWellFormed($new) ? $new : null;
     }
 
+    /**
+     * Sessão conectada pela extensão do navegador: quem renova é a própria extensão, no navegador, junto com o
+     * login do usuário no hPanel. O refresh feito pelo servidor trocaria o token e derrubaria aquele login.
+     */
+    public static function viaExtension(?array $data): bool
+    {
+        return ($data['via'] ?? null) === self::VIA_EXTENSION;
+    }
+
+    /** Token entregue pela extensão: substitui o atual e deixa a renovação com ela. */
+    public function adopt(Session $session, string $token): void
+    {
+        $session->withLock(function () use ($session, $token): void {
+            $data = $session->reload() ?? throw ApiError::notConnected();
+            if (($data['token'] ?? null) === $token && self::viaExtension($data)) {
+                return;
+            }
+            $data['token'] = $token;
+            $data['via'] = self::VIA_EXTENSION;
+            // O login no navegador pode ser de outra conta: o cache da sessão é refeito com o token novo.
+            unset($data['cache']);
+            $session->write($data);
+        });
+    }
+
     /** Devolve um token utilizável, renovando-o (com lock) quando preciso. */
     public function ensureFresh(Session $session, int $now, bool $force = false): string
     {
         $data = $session->data() ?? throw ApiError::notConnected();
         $token = (string) ($data['token'] ?? '');
+        if (self::viaExtension($data)) {
+            if ($force) {
+                throw ApiError::renewedByExtension();
+            }
+            if ((Jwt::expiry($token) ?? PHP_INT_MAX) > $now) {
+                return $token;
+            }
+            throw ApiError::sessionExpired();
+        }
         if (!$force && (Jwt::expiry($token) ?? 0) - $now > self::THRESHOLD) {
             return $token;
         }
