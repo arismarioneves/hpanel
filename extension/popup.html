@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <title>HPanel Conector</title>
+  <link rel="stylesheet" href="popup.css">
+  <script type="module" src="popup.js"></script>
+</head>
+<body>
+  <header>
+    <img src="icon.png" alt="" width="20" height="20">
+    <strong>HPanel Conector</strong>
+  </header>
+
+  <section>
+    <h2>hPanel da Hostinger</h2>
+    <p id="hostinger" class="muted">Verificando…</p>
+  </section>
+
+  <section id="here" hidden>
+    <h2>Esta página</h2>
+    <p id="hereText"></p>
+    <button type="button" id="authorize" hidden>Autorizar este painel</button>
+  </section>
+
+  <section>
+    <h2>Painéis autorizados</h2>
+    <ul id="panels"></ul>
+    <p id="noPanels" class="muted" hidden>Nenhum ainda. Abra o seu HPanel e clique em “Autorizar este painel”.</p>
+  </section>
+
+  <details>
+    <summary>Diagnóstico</summary>
+    <pre id="diag"></pre>
+    <button type="button" id="copyDiag">Copiar diagnóstico</button>
+  </details>
+
+  <footer class="muted">O login acontece só no site da Hostinger. A extensão lê o cookie da sua sessão e o entrega apenas aos painéis autorizados aqui.</footer>
+</body>
+</html>

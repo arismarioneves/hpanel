@@ -1,3 +1,4 @@
+import { renewViaExtension } from './extension.js';
 import { CACHE_PREFIX, readCache, writeCache } from './swr.js';
 import { toast } from './toast.js';
 
@@ -30,7 +31,7 @@ function tabStorage() {
   try { return sessionStorage; } catch { return null; }
 }
 
-async function request(method, path, params) {
+async function request(method, path, params, retried = false) {
   let url = `api/${path}`;
   const init = { method, credentials: 'same-origin', headers: { Accept: 'application/json' } };
   if (method === 'GET' && params) url += `?${new URLSearchParams(params)}`;
@@ -54,6 +55,11 @@ async function request(method, path, params) {
   if (json.ok) return json.data;
 
   const err = new ApiError(json.code, json.message, res.status);
+  if (err.code === 'session_expired' && !retried) {
+    // Com a extensão ativa, o token renovado no navegador substitui o expirado e a chamada é repetida uma vez.
+    const renewed = await renewViaExtension().then(() => true, () => false);
+    if (renewed) return request(method, path, params, true);
+  }
   if (err.code === 'not_connected' && !STAY_PAGES.has(document.body.dataset.page)) location.assign('./');
   if (err.code === 'session_expired') window.dispatchEvent(new CustomEvent('hp:session-expired'));
   throw err;

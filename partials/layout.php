@@ -2,13 +2,14 @@
 
 use HPanel\View;
 
-/** @var string $base @var string $page @var string $title @var string $bodyFile @var string $bootJson @var bool $connected @var bool $demo */
+/** @var string $base @var string $page @var string $title @var string $bodyFile @var string $bootJson @var bool $connected @var bool $demo @var bool $viaExtension */
 ?>
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="application-name" content="HPanel">
     <base href="<?= View::e($base) ?>">
     <title><?= View::e($title) ?> · HPanel</title>
     <link rel="icon" href="favicon.ico" sizes="any">
@@ -19,7 +20,7 @@ use HPanel\View;
     <script src="<?= View::e(View::asset('js/theme-init.js')) ?>"></script>
     <script type="module" src="<?= View::e(View::asset('js/pages/' . $page . '.js')) ?>"></script>
 </head>
-<body data-page="<?= View::e($page) ?>">
+<body data-page="<?= View::e($page) ?>"<?= $viaExtension ? ' data-via="extension"' : '' ?>>
     <a class="skip-link" href="#main">Pular para o conteúdo</a>
     <?php require __DIR__ . '/header.php'; ?>
     <?php if ($demo): ?>

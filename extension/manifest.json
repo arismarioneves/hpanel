@@ -1,0 +1,14 @@
+{
+  "manifest_version": 3,
+  "name": "HPanel Conector",
+  "short_name": "HPanel",
+  "version": "1.0.3",
+  "description": "Conecta o HPanel à sua sessão do hPanel da Hostinger neste navegador e mantém o token renovado junto com ela.",
+  "minimum_chrome_version": "116",
+  "permissions": ["cookies", "scripting", "storage", "activeTab"],
+  "host_permissions": ["https://hpanel.hostinger.com/*", "*://hostinger.com/*"],
+  "optional_host_permissions": ["https://*/*", "http://*/*"],
+  "background": { "service_worker": "sw.js", "type": "module" },
+  "action": { "default_title": "HPanel Conector", "default_popup": "popup.html", "default_icon": "icon.png" },
+  "icons": { "128": "icon.png" }
+}

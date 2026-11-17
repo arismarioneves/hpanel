@@ -40,6 +40,33 @@
                 </div>
             </li>
         </ol>
+
+        <p class="guide-or"><span>ou</span></p>
+
+        <ol class="guide" aria-label="Conectar com a extensão HPanel Conector">
+            <li class="guide-step">
+                <span class="guide-num" aria-hidden="true">1</span>
+                <div class="guide-body">
+                    <strong>Baixe a extensão HPanel Conector</strong>
+                    <p class="muted small">Atalho opcional para Chrome ou Edge: ela lê o cookie da sua sessão no hPanel e o entrega a este painel. O login continua acontecendo só no site da Hostinger.</p>
+                    <a class="btn btn-secondary btn-sm" href="download-extension" download><?= View::icon('plus') ?>Baixar extensão (.zip)</a>
+                </div>
+            </li>
+            <li class="guide-step">
+                <span class="guide-num" aria-hidden="true">2</span>
+                <div class="guide-body">
+                    <strong>Instale no navegador</strong>
+                    <p class="muted small">Descompacte o .zip, abra <code>chrome://extensions</code> (ou <code>edge://extensions</code>), ative o <em>Modo do desenvolvedor</em>, clique em <em>Carregar sem compactação</em> e escolha a pasta <code>hpanel-conector</code>.</p>
+                </div>
+            </li>
+            <li class="guide-step">
+                <span class="guide-num" aria-hidden="true">3</span>
+                <div class="guide-body">
+                    <strong>Autorize este painel</strong>
+                    <p class="muted small">Nesta página, clique no ícone da extensão e em <em>Autorizar este painel</em>. A página recarrega e o botão <em>Conectar via extensão</em> aparece ao lado de <em>Conectar</em>.</p>
+                </div>
+            </li>
+        </ol>
     </section>
 
     <div class="stack">
@@ -53,7 +80,9 @@
                 </div>
                 <div class="row">
                     <button type="submit" class="btn btn-primary" disabled><?= View::icon('check') ?>Conectar</button>
+                    <button type="button" class="btn btn-secondary" data-action="ext-connect" hidden><?= View::icon('key') ?>Conectar via extensão</button>
                 </div>
+                <p id="extStatus" class="field-status" aria-live="polite" hidden></p>
             </form>
         </section>
 
